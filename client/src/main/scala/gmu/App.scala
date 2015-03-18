@@ -11,11 +11,18 @@ object Local extends App {
 
 }
 
+class BwListener extends
+
 class LocalActor extends Actor {
 
   // create the remote actor
-  val remote = context.actorSelection("akka.tcp://Zerg@127.0.0.1:2552/user/RemoteActor")
+  val remote = context.actorSelection("akka.tcp://Zerg@127.0.0.1:2552/user/zergRouter")
   var counter = 0
+
+  var a = 0
+  for(a <- 1 to 50) {
+    remote ! s"work message '$a'"
+  }
 
   def receive = {
     case "START" =>
