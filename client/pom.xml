@@ -38,7 +38,7 @@
       <artifactId>bwapi</artifactId>
       <version>3.4.0</version>
       <scope>system</scope>
-      <systemPath>${project.basedir}/lib/jnibwapi.jar</systemPath>
+      <systemPath>${project.basedir}/lib/bwmirror_v1_2.jar</systemPath>
     </dependency>
   </dependencies>
 
