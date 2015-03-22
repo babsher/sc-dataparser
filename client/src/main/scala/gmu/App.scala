@@ -1,9 +1,14 @@
 package main.scala.gmu
 
 import akka.actor.{Actor, ActorSystem, Props}
-import bwapi.{Mirror, Position, Player, BWEventListener}
+import bwapi.{Unit => BwUnit, _}
 import com.typesafe.config.ConfigFactory
-import gmu.BwListener
+import gmu.UnitState
+import gmu.UnitState.UnitState
+import gmu.{UnitState, ReplayUnit, ReplayFrame, BwListener}
+
+import scala.collection.mutable
+
 
 object Local extends App {
 
@@ -18,25 +23,44 @@ object Local extends App {
   // game.startGame()
 }
 
-class LocalActor extends Actor {
+class LocalActor() extends Actor {
 
-  // create the remote actor
+  var frame: mutable.ListBuffer[ReplayUnit] = mutable.ListBuffer[ReplayUnit]()
+
   val remote = context.actorSelection("akka.tcp://Zerg@127.0.0.1:2552/user/zergRouter")
-  var counter = 0
-
-  var a = 0
-  for(a <- 1 to 50) {
-    remote ! s"work message '$a'"
-  }
 
   def receive = {
-    case "START" =>
-      remote ! "Hello from the LocalActor"
-    case msg: String =>
-      println(s"LocalActor received message: '$msg'")
-      if (counter < 5) {
-        sender ! "Hello back to you"
-        counter += 1
-      }
+    case GameUnit(state, unit) =>
+        frame += replayUnit(state, unit)
+    case ReplayFrame(units, map, replayNum) =>
+      remote ! ReplayFrame(frame.clone(), map, replayNum)
+      sender() ! Done
+      frame.clear()
   }
+
+  def replayUnit(state: UnitState.Value, unit: BwUnit): ReplayUnit = {
+    ReplayUnit(UnitState.Created eq state,
+      UnitState.Destoryed eq state,
+      unit.getID,
+      unit.getType.getRace,
+      unit.getInitialHitPoints,
+      unit.getHitPoints,
+      unit.getShields,
+      unit.getType,
+      unit.getEnergy,
+      unit.getOrder
+    )
+  }
+
+  implicit def convert[T](sq: collection.mutable.Seq[T]): collection.immutable.Seq[T] =
+    collection.immutable.Seq[T](sq:_*)
+
+  implicit def convert(race: Race): gmu.Race.Race =
+    gmu.Race.withName(race.c_str())
+
+  implicit def convert(unitType: UnitType): gmu.UnitType.UnitType =
+    gmu.UnitType.withName(unitType.c_str())
 }
+
+case class GameUnit(state: UnitState, unit: BwUnit)
+case object Done
