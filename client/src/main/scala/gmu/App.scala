@@ -1,7 +1,9 @@
 package main.scala.gmu
 
 import akka.actor.{Actor, ActorSystem, Props}
+import bwapi.{Mirror, Position, Player, BWEventListener}
 import com.typesafe.config.ConfigFactory
+import gmu.BwListener
 
 object Local extends App {
 
@@ -9,9 +11,12 @@ object Local extends App {
   val localActor = system.actorOf(Props[LocalActor], name = "LocalActor")  // the local actor
   localActor ! "START"                                                     // start the action
 
-}
+  val mirror = new Mirror()
+  val listener = new BwListener(localActor, mirror)
+  mirror.getModule.setEventListener(listener)
 
-class BwListener extends
+  // game.startGame()
+}
 
 class LocalActor extends Actor {
 
