@@ -1,11 +1,13 @@
 package main.scala.gmu
 
 import akka.actor.{Actor, ActorSystem, Props}
+import bwapi.Order
+import bwapi.Race
+import bwapi.UnitType
 import bwapi.{Unit => BwUnit, _}
 import com.typesafe.config.ConfigFactory
-import gmu.UnitState
+import gmu._
 import gmu.UnitState.UnitState
-import gmu.{UnitState, ReplayUnit, ReplayFrame, BwListener}
 
 import scala.collection.mutable
 
@@ -42,13 +44,17 @@ class LocalActor() extends Actor {
     ReplayUnit(UnitState.Created eq state,
       UnitState.Destoryed eq state,
       unit.getID,
+      unit.getPlayer.getID,
+      unit.getPosition,
       unit.getType.getRace,
       unit.getInitialHitPoints,
       unit.getHitPoints,
       unit.getShields,
       unit.getType,
       unit.getEnergy,
-      unit.getOrder
+      unit.getOrder,
+      unit.getOrderTarget.getID,
+      unit.getOrderTargetPosition
     )
   }
 
@@ -60,6 +66,20 @@ class LocalActor() extends Actor {
 
   implicit def convert(unitType: UnitType): gmu.UnitType.UnitType =
     gmu.UnitType.withName(unitType.c_str())
+
+  implicit def convert(order: Order): gmu.Order.Order =
+    gmu.Order.withName(order.c_str())
+
+  implicit def convert(pos: Position): gmu.RPosition =
+    RPosition(pos.getX, pos.getY)
+
+  implicit def convert(unitType: UnitType): gmu.UnitTypeAttributes =
+    UnitTypeAttributes(unitType.isDetector,
+      unitType.isFlyer,
+      unitType.isMechanical,
+      unitType.isOrganic,
+      unitType.isRobotic,
+      unitType.isWorker)
 }
 
 case class GameUnit(state: UnitState, unit: BwUnit)
