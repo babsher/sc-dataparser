@@ -36,7 +36,19 @@
       <artifactId>slf4j-simple</artifactId>
       <version>1.7.10</version>
     </dependency>
+    <dependency>
+      <groupId>com.etaty.rediscala</groupId>
+      <artifactId>rediscala_2.11</artifactId>
+      <version>1.4.0</version>
+    </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <id>bintray</id>
+      <url>http://dl.bintray.com/etaty/maven</url>
+    </repository>
+  </repositories>
 
   <build>
     <plugins>
