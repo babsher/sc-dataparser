@@ -36,7 +36,6 @@ class LocalActor() extends Actor {
         frame += replayUnit(state, unit)
     case ReplayFrame(units, map, replayNum, frameNum, frameCount, players) =>
       remote ! ReplayFrame(frame.clone(), map, replayNum, frameNum, frameCount, players)
-      sender() ! Done
       frame.clear()
   }
 
