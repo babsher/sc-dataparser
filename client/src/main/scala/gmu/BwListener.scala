@@ -19,9 +19,6 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
   var map: ReplayMap = null
   var replayNum: Int = 0
 
-  override def onUnitCreate(unit: BwUnit): Unit = {
-  }
-
   def getState(unit: BwUnit) = {
     if (current.contains(unit.getID)) {
       if(destroyed.contains(unit.getID)) {
@@ -30,6 +27,7 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
         UnitState.Normal
       }
     } else {
+      current.add(unit.getID)
       UnitState.Created
     }
   }
@@ -45,7 +43,7 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
   override def onEnd(b: Boolean): Unit = super.onEnd(b)
 
   override def onUnitDestroy(unit: BwUnit): Unit = {
-
+    destroyed.add(unit.getID)
   }
 
   def mapName: String = {
