@@ -14,10 +14,10 @@ case class MapState()
 
 class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListener {
 
-  val current: mutable.Set[Int]
-  val destroyed: mutable.Set[Int]
-  var map: ReplayMap
-  var replayNum: Int
+  val current: mutable.Set[Int] = mutable.Set[Int]()
+  val destroyed: mutable.Set[Int] = mutable.Set[Int]()
+  var map: ReplayMap = null
+  var replayNum: Int = 0
 
   override def onUnitCreate(unit: BwUnit): Unit = {
   }
@@ -44,7 +44,9 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
 
   override def onEnd(b: Boolean): Unit = super.onEnd(b)
 
-  override def onUnitDestroy(unit: BwUnit): Unit = super.onUnitDestroy(unit)
+  override def onUnitDestroy(unit: BwUnit): Unit = {
+
+  }
 
   def mapName: String = {
     mirror.getGame.mapName()
@@ -55,6 +57,9 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
   }
 
   override def onStart(): Unit = {
+    replayNum += 1
+    val game = mirror.getGame
+    map = ReplayMap(game.mapName(), (game.mapHeight(), game.mapWidth()))
     // getplayers
     // update replay map
     // update replay num

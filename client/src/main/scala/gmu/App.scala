@@ -54,7 +54,10 @@ class LocalActor() extends Actor {
       unit.getEnergy,
       unit.getOrder,
       unit.getOrderTarget.getID,
-      unit.getOrderTargetPosition
+      unit.getOrderTargetPosition,
+      unit.getGroundWeaponCooldown,
+      unit.getAirWeaponCooldown,
+      unit.getSpellCooldown
     )
   }
 
@@ -64,7 +67,7 @@ class LocalActor() extends Actor {
   implicit def convert(race: Race): gmu.Race.Race =
     gmu.Race.withName(race.c_str())
 
-  implicit def convert(unitType: UnitType): gmu.UnitType.UnitType =
+  implicit def convertToEnum(unitType: UnitType): gmu.UnitType.UnitType =
     gmu.UnitType.withName(unitType.c_str())
 
   implicit def convert(order: Order): gmu.Order.Order =

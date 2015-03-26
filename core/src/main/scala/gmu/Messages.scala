@@ -5,13 +5,16 @@ import gmu.Race.Race
 import gmu.UnitType.UnitType
 
 case class UnitTypeAttributes(isDetector: Boolean,
-                      isFlyer: Boolean,
-                      isMechanical: Boolean,
-                      isOrganic: Boolean,
-                      isRobotic: Boolean,
-                      isWorker: Boolean)
+                              isFlyer: Boolean,
+                              isMechanical: Boolean,
+                              isOrganic: Boolean,
+                              isRobotic: Boolean,
+                              isWorker: Boolean)
+
 case class RPosition(x: Int, y: Int)
+
 case class ReplayMap(mapName: String, size: (Int, Int))
+
 case class ReplayUnit(isNew: Boolean,
                       isDestory: Boolean,
                       id: Int,
@@ -24,8 +27,12 @@ case class ReplayUnit(isNew: Boolean,
                       unitType: UnitType,
                       energy: Int,
                       order: Order,
-                       orderTargetUnit: Int,
-                       orderTargetPosition: RPosition)
+                      orderTargetUnit: Int,
+                      orderTargetPosition: RPosition,
+                      groundWeaponCooldown: Int,
+                      airWeaponCooldown: Int,
+                      spellCooldown: Int)
+
 case class ReplayFrame(units: Seq[ReplayUnit], map: ReplayMap, replay: Int)
 
 object UnitState extends Enumeration {
