@@ -1,9 +1,6 @@
 package gmu
 
-/**
- * Created by bryan on 3/26/15.
- */
-class UpgradeType extends Enumeration {
+object Upgrade extends Enumeration {
   type UpgradeType = Value
   val
   Terran_Infantry_Armor,

@@ -1,6 +1,6 @@
 package gmu
 
-object WeaponType extends Enumeration {
+object Weapon extends Enumeration {
   type WeaponType = Value
   val
   Gauss_Rifle,

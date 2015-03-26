@@ -1,6 +1,6 @@
 package gmu
 
-object UnitType extends Enumeration {
+object Unit extends Enumeration {
   type UnitType = Value
   val
   Terran_Marine,

@@ -40,9 +40,9 @@
     <dependency>
       <groupId>bwapi</groupId>
       <artifactId>bwapi</artifactId>
-      <version>3.4.0</version>
+      <version>2.1</version>
       <scope>system</scope>
-      <systemPath>${project.basedir}/lib/bwmirror_v1_2.jar</systemPath>
+      <systemPath>${project.basedir}/lib/bwmirror_v2_1.jar</systemPath>
     </dependency>
   </dependencies>
 

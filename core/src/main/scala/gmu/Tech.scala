@@ -1,9 +1,6 @@
 package gmu
 
-/**
- * Created by bryan on 3/26/15.
- */
-class TechType extends Enumeration {
+object Tech extends Enumeration {
   type TechType = Value
   val
   Stim_Packs,
