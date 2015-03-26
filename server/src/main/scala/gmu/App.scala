@@ -3,6 +3,10 @@ package main.scala.gmu
 import akka.actor._
 import akka.routing.FromConfig
 import com.typesafe.config.ConfigFactory
+import gmu.ReplayFrame
+import redis.RedisClient
+import scala.pickling.Defaults._
+import scala.pickling.binary._
 
 object HelloRemote extends App  {
   val config = ConfigFactory.load()
@@ -11,9 +15,15 @@ object HelloRemote extends App  {
 }
 
 class ZergWorker extends Actor {
+
+  val redis = RedisClient()
+
   def receive = {
-    case msg: String =>
-      val name = context.self.path
-      println(s"'$name' Got work '$msg'")
+    case msg: ReplayFrame =>
+      redis.set(getKey(msg), msg.pickle)
+  }
+
+  def getKey(frame: ReplayFrame): String = {
+    frame.replay + "" + frame.frame + frame.map
   }
 }

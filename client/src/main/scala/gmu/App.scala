@@ -16,7 +16,8 @@ import scala.collection.mutable
 object Local extends App {
 
   implicit val system = ActorSystem("LocalSystem", ConfigFactory.load())
-  val localActor = system.actorOf(FromConfig.props(Props[LocalActor]), "localRouter")
+//  val localActor = system.actorOf(FromConfig.props(Props[LocalActor]), "localRouter")
+  val localActor = system.actorOf(Props[LocalActor], "localActor")
 
   val mirror = new Mirror()
   val listener = new BwListener(localActor, mirror)
@@ -33,7 +34,7 @@ class LocalActor() extends Actor {
 
   def receive = {
     case GameUnit(state, unit) =>
-        frame += replayUnit(state, unit)
+      frame += replayUnit(state, unit)
     case ReplayFrame(units, map, replayNum, frameNum, frameCount, players) =>
       remote ! ReplayFrame(frame.clone(), map, replayNum, frameNum, frameCount, players)
       frame.clear()
