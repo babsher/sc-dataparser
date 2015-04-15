@@ -1,5 +1,6 @@
 package gmu
 
+sealed trait Order extends Order.Order
 object Order extends Enumeration {
   type Order = Value
   val

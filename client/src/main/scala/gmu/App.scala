@@ -1,4 +1,4 @@
-package main.scala.gmu
+package gmu
 
 import akka.actor.{Actor, ActorSystem, Props}
 import akka.routing.FromConfig

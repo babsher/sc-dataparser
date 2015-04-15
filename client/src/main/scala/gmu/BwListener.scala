@@ -1,7 +1,5 @@
 package gmu
 
-import main.scala.gmu.GameUnit
-
 import scala.collection.JavaConversions._
 
 import akka.actor.ActorRef

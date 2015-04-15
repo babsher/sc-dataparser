@@ -39,12 +39,7 @@
     <dependency>
       <groupId>com.etaty.rediscala</groupId>
       <artifactId>rediscala_2.11</artifactId>
-      <version>1.4.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.scala-lang.modules</groupId>
-      <artifactId>scala-pickling_2.11</artifactId>
-      <version>0.10.0</version>
+      <version>1.4.2</version>
     </dependency>
   </dependencies>
 
