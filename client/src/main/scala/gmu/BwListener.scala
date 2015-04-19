@@ -53,10 +53,10 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
   }
 
   def convert(techType: bwapi.TechType): gmu.Tech.TechType =
-    gmu.Tech.withName(techType.toString)
+    gmu.Tech.fromName(techType.toString)
 
   def convert(upgradeType: UpgradeType): gmu.Upgrade.UpgradeType =
-    gmu.Upgrade.withName(upgradeType.toString)
+    gmu.Upgrade.fromName(upgradeType.toString)
 
   def mapName: String = {
     mirror.getGame.mapName()

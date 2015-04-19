@@ -1,13 +1,8 @@
 package gmu
 
 import akka.actor.{Actor, ActorSystem, Props}
-import akka.routing.FromConfig
-import bwapi.Order
-import bwapi.Race
-import bwapi.UnitType
-import bwapi.{Unit => BwUnit, _}
+import bwapi.Mirror
 import com.typesafe.config.ConfigFactory
-import gmu._
 import gmu.UnitState.UnitState
 
 import scala.collection.mutable
@@ -40,13 +35,13 @@ class LocalActor() extends Actor {
       frame.clear()
   }
 
-  def replayUnit(state: UnitState.Value, unit: BwUnit): ReplayUnit = {
+  def replayUnit(state: UnitState.Value, unit: bwapi.Unit): ReplayUnit = {
     ReplayUnit(UnitState.Created eq state,
       UnitState.Destoryed eq state,
       unit.getID,
       unit.getPlayer.getID,
       unit.getPosition,
-      (unit.getVelocityX, unit.getVelocityY),
+      Velocity(unit.getVelocityX, unit.getVelocityY),
       unit.getType.getRace,
       unit.getInitialHitPoints,
       unit.getHitPoints,
@@ -67,19 +62,19 @@ class LocalActor() extends Actor {
   implicit def convert[T](sq: collection.mutable.Seq[T]): collection.immutable.Seq[T] =
     collection.immutable.Seq[T](sq:_*)
 
-  implicit def convert(race: Race): gmu.Race.RaceType =
+  implicit def convert(race: bwapi.Race): gmu.Race.RaceType =
     gmu.Race.fromName(race.toString)
 
-  implicit def convertToEnum(unitType: UnitType): gmu.Unit.UnitType =
+  implicit def convertToEnum(unitType: bwapi.UnitType): gmu.Unit.UnitType =
     gmu.Unit.fromName(unitType.toString)
 
-  implicit def convert(order: Order): gmu.Order.OrderType =
+  implicit def convert(order: bwapi.Order): gmu.Order.OrderType =
     gmu.Order.fromName(order.toString)
 
-  implicit def convert(pos: Position): gmu.RPosition =
+  implicit def convert(pos: bwapi.Position): gmu.RPosition =
     RPosition(pos.getX, pos.getY)
 
-  implicit def convert(unitType: UnitType): gmu.UnitTypeAttributes =
+  implicit def convert(unitType: bwapi.UnitType): gmu.UnitTypeAttributes =
     UnitTypeAttributes(
       unitType.armor,
       unitType.isDetector,
@@ -96,10 +91,10 @@ class LocalActor() extends Actor {
       unitType.destroyScore
     )
 
-  implicit def convert(weaponType: WeaponType): gmu.Weapon.WeaponType =
+  implicit def convert(weaponType: bwapi.WeaponType): gmu.Weapon.WeaponType =
     gmu.Weapon.fromName(weaponType.toString)
 
-  implicit def convertToWeaponTypeInfo(weaponType: WeaponType): gmu.WeaponTypeInfo =
+  implicit def convertToWeaponTypeInfo(weaponType: bwapi.WeaponType): gmu.WeaponTypeInfo =
     WeaponTypeInfo(weaponType.damageAmount(),
       weaponType.damageCooldown(),
       weaponType.maxRange(),
@@ -107,5 +102,5 @@ class LocalActor() extends Actor {
       weaponType.medianSplashRadius())
 }
 
-case class GameUnit(state: UnitState, unit: BwUnit)
+case class GameUnit(state: UnitState, unit: bwapi.Unit)
 case object Done
