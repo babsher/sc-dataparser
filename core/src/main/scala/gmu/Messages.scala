@@ -1,7 +1,7 @@
 package gmu
 
-import gmu.Order.Order
-import gmu.Race.Race
+import gmu.Order.OrderType
+import gmu.Race.RaceType
 import gmu.Tech.TechType
 import gmu.Unit.UnitType
 import gmu.Upgrade.UpgradeType
@@ -36,19 +36,21 @@ case class ReplayPlayer(id: Int,
                         tech: Map[TechType, Boolean],
                         upgrades: Map[UpgradeType, Int])
 
+case class Velocity(x: Double, y: Double)
+
 case class ReplayUnit(isNew: Boolean,
                       isDestory: Boolean,
                       id: Int,
                       playerId: Int,
                       position: RPosition,
-                      velocity: (Double, Double),
-                      race: Race,
+                      velocity: Velocity,
+                      race: RaceType,
                       initalHp: Int,
                       hp: Int,
                       sheilds: Int,
                       unitType: UnitType,
                       energy: Int,
-                      order: Order,
+                      order: OrderType,
                       orderTargetUnit: Int,
                       orderTargetPosition: RPosition,
                       targetId: Int,

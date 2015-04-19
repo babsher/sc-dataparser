@@ -67,14 +67,14 @@ class LocalActor() extends Actor {
   implicit def convert[T](sq: collection.mutable.Seq[T]): collection.immutable.Seq[T] =
     collection.immutable.Seq[T](sq:_*)
 
-  implicit def convert(race: Race): gmu.Race.Race =
-    gmu.Race.withName(race.toString)
+  implicit def convert(race: Race): gmu.Race.RaceType =
+    gmu.Race.fromName(race.toString)
 
   implicit def convertToEnum(unitType: UnitType): gmu.Unit.UnitType =
-    gmu.Unit.withName(unitType.toString)
+    gmu.Unit.fromName(unitType.toString)
 
-  implicit def convert(order: Order): gmu.Order.Order =
-    gmu.Order.withName(order.toString)
+  implicit def convert(order: Order): gmu.Order.OrderType =
+    gmu.Order.fromName(order.toString)
 
   implicit def convert(pos: Position): gmu.RPosition =
     RPosition(pos.getX, pos.getY)
@@ -97,7 +97,7 @@ class LocalActor() extends Actor {
     )
 
   implicit def convert(weaponType: WeaponType): gmu.Weapon.WeaponType =
-    gmu.Weapon.withName(weaponType.toString)
+    gmu.Weapon.fromName(weaponType.toString)
 
   implicit def convertToWeaponTypeInfo(weaponType: WeaponType): gmu.WeaponTypeInfo =
     WeaponTypeInfo(weaponType.damageAmount(),
