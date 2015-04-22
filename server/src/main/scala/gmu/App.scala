@@ -8,29 +8,15 @@ import redis.{ByteStringFormatter, ByteStringSerializer, RedisClient}
 import scala.pickling._
 import scala.pickling.binary._
 import scala.pickling.static._
-import scala.pickling.Defaults.{ pickleOps, unpickleOps }
 import scala.pickling.Defaults._
 
 
-object HelloRemote extends App  {
+object ZergWorker extends App  {
   val config = ConfigFactory.load()
   val system = ActorSystem("Zerg", config)
   val router = system.actorOf(FromConfig.props(Props[ZergWorker]), "zergRouter")
-}
 
-class ZergWorker extends Actor {
-  val redis = RedisClient()
-
-  def receive = {
-    case msg: ReplayFrame =>
-      redis.set(getKey(msg), msg)
-  }
-
-  def getKey(frame: ReplayFrame): String = {
-    frame.replay + "" + frame.frame + frame.map
-  }
-
-  implicit val replayFrameSerializer = new ByteStringFormatter[ReplayFrame] {
+  val replayFrameSerializer = new ByteStringFormatter[ReplayFrame] {
     implicit val racePickler = Pickler.generate[gmu.Race.RaceType]
     implicit val raceUnplicker = Unpickler.generate[gmu.Race.RaceType]
 
@@ -56,5 +42,19 @@ class ZergWorker extends Actor {
     override def serialize(data: ReplayFrame): ByteString = {
       ByteString(data.pickle.value)
     }
+  }
+}
+
+class ZergWorker extends Actor {
+  implicit val serial = ZergWorker.replayFrameSerializer
+  val redis = RedisClient()
+
+  def receive = {
+    case msg: ReplayFrame =>
+      redis.set(getKey(msg), msg)
+  }
+
+  def getKey(frame: ReplayFrame): String = {
+    frame.replay + "" + frame.frame + frame.map
   }
 }
