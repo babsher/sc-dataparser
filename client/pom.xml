@@ -41,8 +41,6 @@
       <groupId>bwapi</groupId>
       <artifactId>bwapi</artifactId>
       <version>2.1</version>
-      <scope>system</scope>
-      <systemPath>${project.basedir}/lib/bwmirror_v2_1.jar</systemPath>
     </dependency>
   </dependencies>
 
@@ -64,7 +62,7 @@
                   <resource>reference.conf</resource>
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>main.scala.gmu.Local</mainClass>
+                  <mainClass>gmu.Local</mainClass>
                 </transformer>
               </transformers>
               <artifactSet>
