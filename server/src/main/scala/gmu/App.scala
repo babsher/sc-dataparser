@@ -4,7 +4,7 @@ import akka.actor._
 import akka.routing.FromConfig
 import akka.util.ByteString
 import com.typesafe.config.ConfigFactory
-import redis.{ByteStringFormatter, ByteStringSerializer, RedisClient}
+import redis.{RedisCommands, ByteStringFormatter, ByteStringSerializer, RedisClient}
 import scala.pickling._
 import scala.pickling.binary._
 import scala.pickling.static._
@@ -13,10 +13,14 @@ import scala.pickling.Defaults._
 
 object ZergWorker extends App  {
   val config = ConfigFactory.load()
-  val system = ActorSystem("Zerg", config)
-  val router = system.actorOf(FromConfig.props(Props[ZergWorker]), "zergRouter")
+  implicit val system = ActorSystem("Zerg", config)
+  val router = system.actorOf(FromConfig.props(ZergWorker.props()), "zergRouter")
 
-  val replayFrameSerializer = new ByteStringFormatter[ReplayFrame] {
+  def props() = Props(new ZergWorker(new RedisClient()))
+}
+
+class ZergWorker(val redis: RedisCommands) extends Actor {
+  implicit val replayFrameSerializer = new ByteStringFormatter[ReplayFrame] {
     implicit val racePickler = Pickler.generate[gmu.Race.RaceType]
     implicit val raceUnplicker = Unpickler.generate[gmu.Race.RaceType]
 
@@ -43,11 +47,6 @@ object ZergWorker extends App  {
       ByteString(data.pickle.value)
     }
   }
-}
-
-class ZergWorker extends Actor {
-  implicit val serial = ZergWorker.replayFrameSerializer
-  val redis = RedisClient()
 
   def receive = {
     case msg: ReplayFrame =>
