@@ -9,6 +9,7 @@ import org.deeplearning4j.nn.conf.{NeuralNetConfiguration, MultiLayerConfigurati
 import org.deeplearning4j.nn.layers.factory.{PretrainLayerFactory, LayerFactories}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
+import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.lossfunctions.LossFunctions
