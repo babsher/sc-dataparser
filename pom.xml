@@ -10,6 +10,7 @@
     <module>server</module>
     <module>client</module>
     <module>core</module>
+    <module>autoencoder</module>
   </modules>
 
   <properties>
