@@ -67,7 +67,7 @@ class Main {
 class ReplayIterator(batch: Int, numExamples: Int, fetcher: DataSetFetcher) extends BaseDatasetIterator(batch, numExamples, fetcher) {
 }
 
-class ReplayDataFetcher extends BaseDataFetcher
+class ReplayDataFetcher extends BaseDataFetcher {
 
   override def fetch(numExamples: Int): Unit = {
 
