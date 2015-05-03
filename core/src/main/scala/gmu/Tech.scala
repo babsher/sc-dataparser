@@ -3,7 +3,7 @@ package gmu
 object Tech {
 
   def fromName(name: String): TechType = {
-    values.filter(_.toString eq name).head
+    values.filter(_.toString == name).head
   }
 
   sealed trait TechType

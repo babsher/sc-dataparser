@@ -3,7 +3,7 @@ package gmu
 object Weapon {
 
   def fromName(name: String): WeaponType = {
-    value.filter(_.toString eq name).head
+    value.filter(_.toString == name).head
   }
 
   sealed trait WeaponType

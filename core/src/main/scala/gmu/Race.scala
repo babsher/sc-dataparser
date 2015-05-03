@@ -1,6 +1,10 @@
 package gmu
 
+import org.slf4j.LoggerFactory
+
 object Race {
+  val log = LoggerFactory.getLogger("gmu.Race")
+
   sealed trait RaceType
   case object Zerg extends RaceType
   case object Terran extends RaceType
@@ -11,7 +15,7 @@ object Race {
   case object Unknown extends RaceType
 
   def fromName(name: String): RaceType = {
-    values.filter(_.toString eq name).head
+    values.filter(_.toString == name).head
   }
 
   val values = List(

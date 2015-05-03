@@ -4,7 +4,7 @@ object Order {
   sealed trait OrderType
 
   def fromName(name: String): OrderType = {
-    values.filter(_.toString eq name).head
+    values.filter(_.toString == name).head
   }
 
   case object Die extends OrderType

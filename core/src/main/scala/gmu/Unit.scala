@@ -3,7 +3,7 @@ package gmu
 object Unit {
 
   def fromName(name: String): UnitType = {
-    values.filter(_.toString eq name).head
+    values.filter(_.toString.startsWith(name)).head
   }
 
   sealed trait UnitType

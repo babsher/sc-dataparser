@@ -3,7 +3,7 @@ package gmu
 object Upgrade {
 
   def fromName(name: String): UpgradeType = {
-    values.filter(_.toString eq name).head
+    values.filter(_.toString == name).head
   }
   sealed trait UpgradeType
   case object Terran_Infantry_Armor extends UpgradeType
