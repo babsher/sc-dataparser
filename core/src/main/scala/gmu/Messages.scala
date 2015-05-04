@@ -30,7 +30,9 @@ case class WeaponTypeInfo(
                          minRange: Int,
                          splashRadius: Int)
 
-case class ReplayMap(mapName: String, size: (Int, Int))
+case class MapSize(x :Int, y :Int)
+
+case class ReplayMap(mapName: String, size: MapSize)
 
 case class ReplayPlayer(id: Int,
                         tech: Map[TechType, Boolean],
@@ -70,3 +72,5 @@ object UnitState extends Enumeration {
   type UnitState = Value
   val Created, Normal, Destoryed = Value
 }
+
+object WakeUp

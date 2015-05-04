@@ -1,5 +1,7 @@
 package gmu
 
+import org.slf4j.LoggerFactory
+
 import scala.collection.JavaConversions._
 
 import akka.actor.ActorRef
@@ -8,8 +10,9 @@ import bwapi.{Unit => BwUnit, _}
 import scala.collection.mutable
 
 class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListener {
+  val log = LoggerFactory.getLogger("gmu.BwListener")
 
-  val game = mirror.getGame
+  lazy val game = mirror.getGame
   val current: mutable.Set[Int] = mutable.Set[Int]()
   val destroyed: mutable.Set[Int] = mutable.Set[Int]()
   var map: ReplayMap = null
@@ -29,6 +32,9 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
   }
 
   override def onFrame(): Unit = {
+    game.setLocalSpeed(0)
+
+    log.debug("Sending units {}", mirror.getGame.getAllUnits.size())
     for(unit <- mirror.getGame.getAllUnits) {
       val state = getState(unit)
       local ! GameUnit(state, unit)
@@ -38,6 +44,7 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
       val hasUpgrade = upgradeTypes.map(up => (convert(up), p.getUpgradeLevel(up))).toMap
       ReplayPlayer(p.getID, hasTech, hasUpgrade)
     })
+    log.debug("Sending replay frame")
     local ! ReplayFrame(null,
       map,
       replayNum,
@@ -69,7 +76,7 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
   override def onStart(): Unit = {
     replayNum += 1
     val game = mirror.getGame
-    map = ReplayMap(game.mapName(), (game.mapHeight(), game.mapWidth()))
+    map = ReplayMap(game.mapName(), MapSize(game.mapHeight(), game.mapWidth()))
     // getplayers
     // update replay map
     // update replay num

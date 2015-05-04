@@ -1,6 +1,7 @@
 package gmu
 
 import akka.actor.{Actor, ActorSystem, Props}
+import akka.event.Logging
 import bwapi.Mirror
 import com.typesafe.config.ConfigFactory
 import gmu.UnitState.UnitState
@@ -22,20 +23,28 @@ object Local extends App {
 }
 
 class LocalActor() extends Actor {
+  val log = Logging(context.system, this)
 
   var frame: mutable.ListBuffer[ReplayUnit] = mutable.ListBuffer[ReplayUnit]()
 
-  val remote = context.actorSelection("akka.tcp://Zerg@127.0.0.1:2552/user/zergRouter")
+  val remote = context.actorSelection("akka.tcp://Zerg@192.168.1.250:2552/user/zergRouter")
+  remote ! WakeUp
 
   def receive = {
     case GameUnit(state, unit) =>
       frame += replayUnit(state, unit)
     case ReplayFrame(units, map, replayNum, frameNum, frameCount, players) =>
+      log.debug("Got replay frame, sending {} units", frame.size)
       remote ! ReplayFrame(frame.clone(), map, replayNum, frameNum, frameCount, players)
       frame.clear()
   }
 
   def replayUnit(state: UnitState.Value, unit: bwapi.Unit): ReplayUnit = {
+    val orderTarget = unit.getOrderTarget
+    val orderTargetId :Int = if(unit.getOrderTarget != null) unit.getOrderTarget.getID else -1
+
+    val targetId :Int = if(unit.getTarget != null) unit.getTarget.getID else -1
+
     ReplayUnit(UnitState.Created eq state,
       UnitState.Destoryed eq state,
       unit.getID,
@@ -47,11 +56,11 @@ class LocalActor() extends Actor {
       unit.getHitPoints,
       unit.getShields,
       unit.getType,
-      unit.getEnergy,
+      if(unit.getEnergy != null) unit.getEnergy else -1,
       unit.getOrder,
-      unit.getOrderTarget.getID,
+      orderTargetId,
       unit.getOrderTargetPosition,
-      unit.getTarget.getID,
+      targetId,
       unit.getTargetPosition,
       unit.getGroundWeaponCooldown,
       unit.getAirWeaponCooldown,
