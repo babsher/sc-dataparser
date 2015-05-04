@@ -1,6 +1,7 @@
 package gmu
 
-import org.deeplearning4j.datasets.iterator.DataSetIterator
+import org.deeplearning4j.datasets.fetchers.BaseDataFetcher
+import org.deeplearning4j.datasets.iterator.{DataSetFetcher, BaseDatasetIterator, DataSetIterator}
 import org.deeplearning4j.datasets.iterator.impl.{IrisDataSetIterator, LFWDataSetIterator}
 import org.deeplearning4j.eval.Evaluation
 import org.deeplearning4j.models.featuredetectors.rbm.RBM
@@ -61,4 +62,14 @@ object Main extends App {
 
 class Main {
 
+}
+
+class ReplayIterator(batch: Int, numExamples: Int, fetcher: DataSetFetcher) extends BaseDatasetIterator(batch, numExamples, fetcher) {
+}
+
+class ReplayDataFetcher extends BaseDataFetcher {
+
+  override def fetch(numExamples: Int): Unit = {
+
+  }
 }

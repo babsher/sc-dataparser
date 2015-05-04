@@ -21,6 +21,12 @@
         <dependency>
             <groupId>gmu</groupId>
             <artifactId>core</artifactId>
+            <version>0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>gmu</groupId>
+            <artifactId>server</artifactId>
+            <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>gmu</groupId>
@@ -70,11 +76,6 @@
             <groupId>org.deeplearning4j</groupId>
             <artifactId>deeplearning4j-nlp</artifactId>
             <version>${dl4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-jblas</artifactId>
-            <version>${nd4j.version}</version>
         </dependency>
     </dependencies>
 
