@@ -75,3 +75,4 @@ object UnitState extends Enumeration {
 }
 
 case object WakeUp
+case object ReplayDone

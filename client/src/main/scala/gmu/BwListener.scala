@@ -56,7 +56,9 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
         replayPlayers)
   }
 
-  override def onEnd(b: Boolean): Unit = super.onEnd(b)
+  override def onEnd(b: Boolean): Unit = {
+    local ! ReplayDone
+  }
 
   override def onUnitDestroy(unit: BwUnit): Unit = {
     destroyed.add(unit.getID)

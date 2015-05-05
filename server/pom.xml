@@ -38,9 +38,9 @@
       <version>1.7.10</version>
     </dependency>
     <dependency>
-      <groupId>com.etaty.rediscala</groupId>
-      <artifactId>rediscala_2.11</artifactId>
-      <version>1.4.2</version>
+      <groupId>net.debasishg</groupId>
+      <artifactId>redisclient_2.11</artifactId>
+      <version>2.15</version>
     </dependency>
     <dependency>
       <groupId>org.scala-lang.modules</groupId>

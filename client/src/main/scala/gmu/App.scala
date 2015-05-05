@@ -4,10 +4,12 @@ import akka.actor.{Actor, ActorSystem, Props}
 import akka.event.Logging
 import bwapi.Mirror
 import com.typesafe.config.ConfigFactory
+import gmu.ReplayDone
 import gmu.UnitState.UnitState
 
 import scala.collection.mutable
 
+case class GameUnit(state: UnitState, unit: bwapi.Unit, replayFrame: ReplayFrame)
 
 object Local extends App {
 
@@ -32,8 +34,11 @@ class LocalActor() extends Actor {
     case GameUnit(state, unit, frame) =>
       remote ! replayUnit(state, unit, frame)
     case msg: ReplayPlayers =>
-      log.debug("Got replay frame, sending {}/{}", msg.frame.frame, msg.frame.frameCount)
+      log.info("Got replay frame, sending {}/{}", msg.frame.frame, msg.frame.frameCount)
       remote ! msg
+    case ReplayDone =>
+      log.info("Done")
+      remote ! ReplayDone
   }
 
   def replayUnit(state: UnitState.Value, unit: bwapi.Unit, frame: ReplayFrame): ReplayUnit = {
@@ -111,5 +116,3 @@ class LocalActor() extends Actor {
       weaponType.medianSplashRadius())
 }
 
-case class GameUnit(state: UnitState, unit: bwapi.Unit, replayFrame: ReplayFrame)
-case object Done
