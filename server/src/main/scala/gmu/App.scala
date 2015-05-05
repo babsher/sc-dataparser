@@ -17,7 +17,7 @@ object ZergWorker extends App  {
   implicit val system = ActorSystem("Zerg", config)
   val router = system.actorOf(FromConfig.props(ZergWorker.props()), "zergRouter")
 
-  def props() = Props(new ZergWorker(new RedisClient(db = Option(0)), new RedisClient(db = Option(1))))
+  def props() = Props(new ZergWorker(new RedisClient(db = Option(0)), new RedisClient(db = Option(0))))
 }
 
 trait ReplayPickles {
@@ -72,6 +72,12 @@ trait RedisSerializer {
 
   def getKey(frame: ReplayFrame): String =
     frame.replay + "" + frame.frame + frame.map
+
+  def getKey(players: ReplayPlayers): String =
+    "p" + getKey(players.frame)
+
+  def getKey(u: ReplayUnit): String =
+    "u" + getKey(u.frame)
 }
 
 class ZergWorker(val frame :RedisCommands, val units :RedisCommands) extends Actor with RedisSerializer {
@@ -79,11 +85,11 @@ class ZergWorker(val frame :RedisCommands, val units :RedisCommands) extends Act
 
   def receive = {
     case WakeUp =>
-      log.debug("Got wake up")
+      log.info("Got wake up")
     case msg: ReplayUnit =>
-      units.lset(getKey(msg.replay), msg.id, msg)
+      units.lset(getKey(msg), msg.id, msg)
     case msg: ReplayPlayers =>
       log.debug("Got replay frame: {} {}/{}", msg.frame.map.mapName, msg.frame.frame, msg.frame.frameCount)
-      frame.set(getKey(msg.frame), msg)
+      frame.set(getKey(msg), msg)
   }
 }

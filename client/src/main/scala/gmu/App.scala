@@ -41,6 +41,7 @@ class LocalActor() extends Actor {
     val orderTargetId :Int = if(unit.getOrderTarget != null) unit.getOrderTarget.getID else -1
 
     val targetId :Int = if(unit.getTarget != null) unit.getTarget.getID else -1
+    val energy = Option(unit.getEnergy)
 
     ReplayUnit(
       frame,
@@ -55,7 +56,7 @@ class LocalActor() extends Actor {
       unit.getHitPoints,
       unit.getShields,
       unit.getType,
-      if(unit.getEnergy != null) unit.getEnergy else -1,
+      if(energy.isEmpty) -1 else energy.get,
       unit.getOrder,
       orderTargetId,
       unit.getOrderTargetPosition,

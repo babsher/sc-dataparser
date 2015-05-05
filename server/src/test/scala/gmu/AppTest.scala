@@ -3,12 +3,9 @@ package gmu
 import akka.actor.{Props, ActorSystem}
 import akka.testkit.{TestKit, TestActorRef}
 import org.scalamock.scalatest.MockFactory
+import org.scalamock._
 import org.scalatest._
 import redis.{RedisCommands, RedisClient}
-import scala.pickling._
-import scala.pickling.binary._
-import scala.pickling.static._
-import scala.pickling.Defaults._
 
 class AppTest extends  TestKit(ActorSystem("MyActorTest"))  with WordSpecLike with Matchers with MockFactory  {
 

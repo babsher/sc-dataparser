@@ -40,7 +40,7 @@ case class ReplayPlayer(id: Int,
 
 case class Velocity(x: Double, y: Double)
 
-case class ReplayUnit(replay: ReplayFrame,
+case class ReplayUnit(frame: ReplayFrame,
                       isNew: Boolean,
                       isDestory: Boolean,
                       id: Int,
