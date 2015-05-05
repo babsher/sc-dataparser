@@ -45,7 +45,7 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
       ReplayPlayer(p.getID, hasTech, hasUpgrade)
     })
     log.debug("Sending replay frame")
-    local ! ReplayFrame(null,
+    local ! ReplayFrame(
       map,
       replayNum,
       game.getFrameCount,

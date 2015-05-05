@@ -40,7 +40,8 @@ case class ReplayPlayer(id: Int,
 
 case class Velocity(x: Double, y: Double)
 
-case class ReplayUnit(isNew: Boolean,
+case class ReplayUnit(replay :ReplayFrame,
+                      isNew: Boolean,
                       isDestory: Boolean,
                       id: Int,
                       playerId: Int,
@@ -61,8 +62,7 @@ case class ReplayUnit(isNew: Boolean,
                       airWeaponCooldown: Int,
                       spellCooldown: Int)
 
-case class ReplayFrame(units: Seq[ReplayUnit],
-                       map: ReplayMap,
+case class ReplayFrame(map: ReplayMap,
                        replay: Int,
                        frame: Int,
                        frameCount: Int,
@@ -73,4 +73,4 @@ object UnitState extends Enumeration {
   val Created, Normal, Destoryed = Value
 }
 
-object WakeUp
+case object WakeUp
