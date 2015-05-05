@@ -4,10 +4,10 @@ import org.deeplearning4j.datasets.fetchers.BaseDataFetcher
 import org.deeplearning4j.datasets.iterator.{DataSetFetcher, BaseDatasetIterator, DataSetIterator}
 import org.deeplearning4j.datasets.iterator.impl.{IrisDataSetIterator, LFWDataSetIterator}
 import org.deeplearning4j.eval.Evaluation
-import org.deeplearning4j.models.featuredetectors.rbm.RBM
 import org.deeplearning4j.nn.api.{OptimizationAlgorithm, LayerFactory}
 import org.deeplearning4j.nn.conf.{NeuralNetConfiguration, MultiLayerConfiguration}
 import org.deeplearning4j.nn.layers.factory.{PretrainLayerFactory, LayerFactories}
+import org.deeplearning4j.nn.layers.feedforward.rbm.RBM
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener

@@ -17,37 +17,55 @@ object ZergWorker extends App  {
   implicit val system = ActorSystem("Zerg", config)
   val router = system.actorOf(FromConfig.props(ZergWorker.props()), "zergRouter")
 
-  def props() = Props(new ZergWorker(new RedisClient(db = Option(25)), new RedisClient(db = Option(26))))
+  def props() = Props(new ZergWorker(new RedisClient(db = Option(0)), new RedisClient(db = Option(1))))
+}
+
+trait ReplayPickles {
+  implicit val racePickler = Pickler.generate[gmu.Race.RaceType]
+  implicit val raceUnplicker = Unpickler.generate[gmu.Race.RaceType]
+
+  implicit val velPickler = Pickler.generate[gmu.Velocity]
+  implicit val velUnpickler = Unpickler.generate[gmu.Velocity]
+
+  implicit val posPickler = Pickler.generate[gmu.RPosition]
+  implicit val posUnpickler = Unpickler.generate[gmu.RPosition]
+
+  implicit val playerPickler = Pickler.generate[gmu.ReplayPlayer]
+  implicit val playerUnpickler = Unpickler.generate[gmu.ReplayPlayer]
+
+  implicit val replayFramePickler = Pickler.generate[ReplayFrame]
+  implicit val replayFrameUnpickler = Unpickler.generate[ReplayFrame]
+
+  implicit val mapSizePickler = Pickler.generate[MapSize]
+  implicit val mapSizeUnpickler = Unpickler.generate[MapSize]
+
+  implicit val unitPickler = Pickler.generate[gmu.ReplayUnit]
+  implicit val unitUnpickler = Unpickler.generate[gmu.ReplayUnit]
+
+  implicit val replayersPickler = Pickler.generate[gmu.ReplayPlayers]
+  implicit val replayersUnplicker = Unpickler.generate[gmu.ReplayPlayers]
 }
 
 trait RedisSerializer {
-  implicit val replayFrameSerializer = new ByteStringFormatter[ReplayFrame] {
-    implicit val racePickler = Pickler.generate[gmu.Race.RaceType]
-    implicit val raceUnplicker = Unpickler.generate[gmu.Race.RaceType]
 
-    implicit val velPickler = Pickler.generate[gmu.Velocity]
-    implicit val velUnpickler = Unpickler.generate[gmu.Velocity]
+  implicit val unitFrameSerializer = new ByteStringFormatter[ReplayUnit] with ReplayPickles {
 
-    implicit val posPickler = Pickler.generate[gmu.RPosition]
-    implicit val posUnpickler = Unpickler.generate[gmu.RPosition]
-
-    implicit val unitPickler = Pickler.generate[gmu.ReplayUnit]
-    implicit val unitUnpickler = Unpickler.generate[gmu.ReplayUnit]
-
-    implicit val playerPickler = Pickler.generate[gmu.ReplayPlayer]
-    implicit val playerUnpickler = Unpickler.generate[gmu.ReplayPlayer]
-
-    implicit val replayFramePickler = Pickler.generate[ReplayFrame]
-    implicit val replayFrameUnpickler = Unpickler.generate[ReplayFrame]
-
-    implicit val mapSizePickler = Pickler.generate[MapSize]
-    implicit val mapSizeUnpickler = Unpickler.generate[MapSize]
-
-    override def deserialize(bs: ByteString): ReplayFrame = {
-      bs.toArray.unpickle[ReplayFrame]
+    override def deserialize(bs: ByteString): ReplayUnit = {
+      bs.toArray.unpickle[ReplayUnit]
     }
 
-    override def serialize(data: ReplayFrame): ByteString = {
+    override def serialize(data: ReplayUnit): ByteString = {
+      ByteString(data.pickle.value)
+    }
+  }
+
+  implicit val replayFrameSerializer = new ByteStringFormatter[ReplayPlayers] with ReplayPickles {
+
+    override def deserialize(bs: ByteString): ReplayPlayers = {
+      bs.toArray.unpickle[ReplayPlayers]
+    }
+
+    override def serialize(data: ReplayPlayers): ByteString = {
       ByteString(data.pickle.value)
     }
   }
@@ -64,8 +82,8 @@ class ZergWorker(val frame :RedisCommands, val units :RedisCommands) extends Act
       log.debug("Got wake up")
     case msg: ReplayUnit =>
       units.lset(getKey(msg.replay), msg.id, msg)
-    case msg: ReplayFrame =>
-      log.debug("Got replay frame: {} {}/{}", msg.map.mapName, msg.frame, msg.frameCount)
-      frame.set(getKey(msg), msg)
+    case msg: ReplayPlayers =>
+      log.debug("Got replay frame: {} {}/{}", msg.frame.map.mapName, msg.frame.frame, msg.frame.frameCount)
+      frame.set(getKey(msg.frame), msg)
   }
 }

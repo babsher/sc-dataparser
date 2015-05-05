@@ -21,7 +21,7 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
   def getState(unit: BwUnit) = {
     if (current.contains(unit.getID)) {
       if(destroyed.contains(unit.getID)) {
-        UnitState.Destoryed
+        UnitState.Destroyed
       } else {
         UnitState.Normal
       }
@@ -34,10 +34,16 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
   override def onFrame(): Unit = {
     game.setLocalSpeed(0)
 
+    val frame = ReplayFrame(
+      map,
+      replayNum,
+      game.getFrameCount,
+      game.getReplayFrameCount)
+
     log.debug("Sending units {}", mirror.getGame.getAllUnits.size())
     for(unit <- mirror.getGame.getAllUnits) {
       val state = getState(unit)
-      local ! GameUnit(state, unit)
+      local ! GameUnit(state, unit, frame)
     }
     val replayPlayers = game.getPlayers.map(p => {
       val hasTech = techTypes.map(tech => (convert(tech), p.hasResearched(tech))).toMap
@@ -45,12 +51,9 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
       ReplayPlayer(p.getID, hasTech, hasUpgrade)
     })
     log.debug("Sending replay frame")
-    local ! ReplayFrame(
-      map,
-      replayNum,
-      game.getFrameCount,
-      game.getReplayFrameCount,
-      replayPlayers)
+    local ! ReplayPlayers(
+        frame,
+        replayPlayers)
   }
 
   override def onEnd(b: Boolean): Unit = super.onEnd(b)

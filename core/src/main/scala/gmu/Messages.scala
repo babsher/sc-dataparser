@@ -24,13 +24,13 @@ case class UnitTypeAttributes(armor: Int,
 case class RPosition(x: Int, y: Int)
 
 case class WeaponTypeInfo(
-                         damageAmount: Int,
-                         damageCooldown: Int,
-                         maxRange: Int,
-                         minRange: Int,
-                         splashRadius: Int)
+                           damageAmount: Int,
+                           damageCooldown: Int,
+                           maxRange: Int,
+                           minRange: Int,
+                           splashRadius: Int)
 
-case class MapSize(x :Int, y :Int)
+case class MapSize(x: Int, y: Int)
 
 case class ReplayMap(mapName: String, size: MapSize)
 
@@ -40,7 +40,7 @@ case class ReplayPlayer(id: Int,
 
 case class Velocity(x: Double, y: Double)
 
-case class ReplayUnit(replay :ReplayFrame,
+case class ReplayUnit(replay: ReplayFrame,
                       isNew: Boolean,
                       isDestory: Boolean,
                       id: Int,
@@ -65,12 +65,13 @@ case class ReplayUnit(replay :ReplayFrame,
 case class ReplayFrame(map: ReplayMap,
                        replay: Int,
                        frame: Int,
-                       frameCount: Int,
-                       players: Seq[ReplayPlayer])
+                       frameCount: Int)
+
+case class ReplayPlayers(frame: ReplayFrame, players: Seq[ReplayPlayer])
 
 object UnitState extends Enumeration {
   type UnitState = Value
-  val Created, Normal, Destoryed = Value
+  val Created, Normal, Destroyed = Value
 }
 
 case object WakeUp

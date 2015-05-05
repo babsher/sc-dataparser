@@ -25,28 +25,27 @@ object Local extends App {
 class LocalActor() extends Actor {
   val log = Logging(context.system, this)
 
-  var frame: mutable.ListBuffer[ReplayUnit] = mutable.ListBuffer[ReplayUnit]()
-
   val remote = context.actorSelection("akka.tcp://Zerg@192.168.1.250:2552/user/zergRouter")
   remote ! WakeUp
 
   def receive = {
-    case GameUnit(state, unit) =>
-      frame += replayUnit(state, unit)
-    case ReplayFrame(units, map, replayNum, frameNum, frameCount, players) =>
-      log.debug("Got replay frame, sending {} units", frame.size)
-      remote ! ReplayFrame(frame.clone(), map, replayNum, frameNum, frameCount, players)
-      frame.clear()
+    case GameUnit(state, unit, frame) =>
+      remote ! replayUnit(state, unit, frame)
+    case msg: ReplayPlayers =>
+      log.debug("Got replay frame, sending {}/{}", msg.frame.frame, msg.frame.frameCount)
+      remote ! msg
   }
 
-  def replayUnit(state: UnitState.Value, unit: bwapi.Unit): ReplayUnit = {
+  def replayUnit(state: UnitState.Value, unit: bwapi.Unit, frame: ReplayFrame): ReplayUnit = {
     val orderTarget = unit.getOrderTarget
     val orderTargetId :Int = if(unit.getOrderTarget != null) unit.getOrderTarget.getID else -1
 
     val targetId :Int = if(unit.getTarget != null) unit.getTarget.getID else -1
 
-    ReplayUnit(UnitState.Created eq state,
-      UnitState.Destoryed eq state,
+    ReplayUnit(
+      frame,
+      UnitState.Created eq state,
+      UnitState.Destroyed eq state,
       unit.getID,
       unit.getPlayer.getID,
       unit.getPosition,
@@ -111,5 +110,5 @@ class LocalActor() extends Actor {
       weaponType.medianSplashRadius())
 }
 
-case class GameUnit(state: UnitState, unit: bwapi.Unit)
+case class GameUnit(state: UnitState, unit: bwapi.Unit, replayFrame: ReplayFrame)
 case object Done

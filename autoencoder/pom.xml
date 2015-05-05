@@ -79,19 +79,19 @@
         </dependency>
     </dependencies>
 
-    <repositories>
-        <repository>
-            <id>nexus-snapshot</id>
-            <name>nxues-snapshot</name>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>nexus-releases</id>
-            <name>Nexus Release Repository</name>
-            <url>http://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </repositories>
+    <!--<repositories>-->
+        <!--<repository>-->
+            <!--<id>nexus-snapshot</id>-->
+            <!--<name>nxues-snapshot</name>-->
+            <!--<url>https://oss.sonatype.org/content/repositories/snapshots</url>-->
+            <!--<snapshots>-->
+                <!--<enabled>true</enabled>-->
+            <!--</snapshots>-->
+        <!--</repository>-->
+        <!--<repository>-->
+            <!--<id>nexus-releases</id>-->
+            <!--<name>Nexus Release Repository</name>-->
+            <!--<url>http://oss.sonatype.org/service/local/staging/deploy/maven2/</url>-->
+        <!--</repository>-->
+    <!--</repositories>-->
 </project>
