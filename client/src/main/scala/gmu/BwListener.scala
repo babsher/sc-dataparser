@@ -7,14 +7,13 @@ import bwapi.{Unit => BwUnit, _}
 
 import scala.collection.mutable
 
-class BwListener(val mirror: Mirror) extends DefaultBWListener with ReplayConversions with ReplayPickles {
+class BwListener(val mirror: Mirror, var replayNum: Int) extends DefaultBWListener with ReplayConversions with ReplayPickles {
   val log = LoggerFactory.getLogger("gmu.BwListener")
 
   lazy val game = mirror.getGame
   val current: mutable.Set[Int] = mutable.Set[Int]()
   val destroyed: mutable.Set[Int] = mutable.Set[Int]()
   var map: ReplayMap = null
-  var replayNum: Int = 0
 
   val persister = new Persister()
 
@@ -39,7 +38,7 @@ class BwListener(val mirror: Mirror) extends DefaultBWListener with ReplayConver
       game.getReplayFrameCount)
 
     log.info("Sending units {}", mirror.getGame.getAllUnits.size())
-    mirror.getGame.getAllUnits.par.foreach(unit => {
+    mirror.getGame.getAllUnits.foreach(unit => {
         val state = getState(unit)
         val msg = replayUnit(state, unit, frame)
         persister.saves.put(ToSave(Some(msg), None))

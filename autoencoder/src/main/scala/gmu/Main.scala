@@ -1,5 +1,7 @@
 package gmu
 
+import scala.collection.JavaConversions._
+import com.mongodb.{WriteConcern, MongoClientOptions, MongoClient}
 import org.deeplearning4j.datasets.fetchers.BaseDataFetcher
 import org.deeplearning4j.datasets.iterator.{DataSetFetcher, BaseDatasetIterator, DataSetIterator}
 import org.deeplearning4j.datasets.iterator.impl.{IrisDataSetIterator, LFWDataSetIterator}
@@ -42,34 +44,65 @@ object Main extends App {
 
   val next = iter.next()
 
-  Nd4j.writeTxt(next.getFeatureMatrix(),"iris.txt","\t")
+  Nd4j.writeTxt(next.getFeatureMatrix,"iris.txt","\t")
 
   next.normalizeZeroMeanZeroUnitVariance()
 
   val testAndTrain = next.splitTestAndTrain(110)
-  val train = testAndTrain.getTrain()
+  val train = testAndTrain.getTrain
 
   d.fit(train)
 
-  val test = testAndTrain.getTest()
+  val test = testAndTrain.getTest
 
 
   val eval = new Evaluation()
-  val output = d.output(test.getFeatureMatrix())
-  eval.eval(test.getLabels(),output)
+  val output = d.output(test.getFeatureMatrix)
+  eval.eval(test.getLabels,output)
   log.info("Score " + eval.stats())
 }
 
 class Main {
-
+  // needed for logging
 }
 
 class ReplayIterator(batch: Int, numExamples: Int, fetcher: DataSetFetcher) extends BaseDatasetIterator(batch, numExamples, fetcher) {
 }
 
 class ReplayDataFetcher extends BaseDataFetcher {
+  val mongo = new MongoClient("192.168.1.250", MongoClientOptions.builder()
+    .connectionsPerHost(32)
+    .build())
 
   override def fetch(numExamples: Int): Unit = {
+    val db = mongo.getDatabase("sc")
+    val units = db.getCollection("units")
+    val players = db.getCollection("players")
 
+    val examples = java.util.ArrayList[DataSet]
+
+    val d = new DataSet()
+
+    initializeCurrFromList(examples)
+  }
+
+  def serialize(u: ReplayUnit): Array[Double] = {
+    Array(
+      Unit.values.indexOf(u.unitType),
+      u.hp / u.initalHp,
+      Order.values.indexOf(u.order)
+    )
+  }
+
+  def serialize(p: ReplayPlayer): Array[Double] = {
+    val tech = p.tech.toList
+      .sortWith((e1, e2) => Tech.values.indexOf(e1._1) > Tech.values.indexOf(e2._1))
+      .map(t => if(t._2) 1.toDouble else -1.toDouble)
+
+    val upgrades = p.upgrades.toList
+      .sortWith((e1, e2) => Upgrade.values.indexOf(e1._1) > Upgrade.values.indexOf(e2._1))
+      .map(t => t._2.toDouble)
+
+    Array.concat(tech.toArray, upgrades.toArray)
   }
 }

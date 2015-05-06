@@ -1,5 +1,7 @@
 package gmu
 
+import org.bson.Document
+
 import scala.pickling.{Unpickler, Pickler}
 
 import scala.pickling._
@@ -32,12 +34,12 @@ trait ReplayPickles {
   implicit val replayersPickler = Pickler.generate[gmu.ReplayPlayers]
   implicit val replayersUnplicker = Unpickler.generate[gmu.ReplayPlayers]
 
-  def getKey(frame: ReplayFrame): String =
-    frame.replay + "" + frame.frame + frame.map
+  def getKey(frame: ReplayFrame): Document =
+    new Document("replay", frame.replay).append("frame", frame.frame)
 
-  def getKey(players: ReplayPlayers): String =
-    "p" + getKey(players.frame)
+  def getKey(players: ReplayPlayers): Document =
+    getKey(players.frame)
 
-  def getKey(u: ReplayUnit): String =
-    "u" + getKey(u.frame)
+  def getKey(u: ReplayUnit): Document =
+    getKey(u.frame).append("id", u.id)
 }

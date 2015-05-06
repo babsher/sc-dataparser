@@ -17,7 +17,7 @@ class Persister {
     .writeConcern(WriteConcern.UNACKNOWLEDGED)
     .build())
 
-  val saves = new LinkedBlockingQueue[ToSave](1024 * 1000)
+  val saves = new LinkedBlockingQueue[ToSave](1024 * 75)
   val pool = Executors.newFixedThreadPool(6)
   for(x <- Range(1, 6)) {
     pool.execute(new Mover(this, mongo))
@@ -40,7 +40,7 @@ class Mover(val p: Persister, val mongo: MongoClient) extends Runnable with Repl
             log.info("Saves size {}", p.saves.size())
           case None =>
         }
-        toSave.players match {
+        toSave.unit match {
           case Some(unit) =>
             units.insertOne(new Document("id", getKey(unit)).append("units", unit.pickle.value))
           case None =>
