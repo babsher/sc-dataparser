@@ -3,13 +3,11 @@ package gmu
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
-
-import akka.actor.ActorRef
 import bwapi.{Unit => BwUnit, _}
 
 import scala.collection.mutable
 
-class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListener {
+class BwListener(val mirror: Mirror) extends DefaultBWListener with ReplayConversions with ReplayPickles {
   val log = LoggerFactory.getLogger("gmu.BwListener")
 
   lazy val game = mirror.getGame
@@ -17,6 +15,8 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
   val destroyed: mutable.Set[Int] = mutable.Set[Int]()
   var map: ReplayMap = null
   var replayNum: Int = 0
+
+  val persister = new Persister()
 
   def getState(unit: BwUnit) = {
     if (current.contains(unit.getID)) {
@@ -32,32 +32,31 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
   }
 
   override def onFrame(): Unit = {
-    game.setLocalSpeed(0)
-
     val frame = ReplayFrame(
       map,
       replayNum,
       game.getFrameCount,
       game.getReplayFrameCount)
 
-    log.debug("Sending units {}", mirror.getGame.getAllUnits.size())
-    for(unit <- mirror.getGame.getAllUnits) {
-      val state = getState(unit)
-      local ! GameUnit(state, unit, frame)
-    }
+    log.info("Sending units {}", mirror.getGame.getAllUnits.size())
+    mirror.getGame.getAllUnits.par.foreach(unit => {
+        val state = getState(unit)
+        val msg = replayUnit(state, unit, frame)
+        persister.saves.put(ToSave(Some(msg), None))
+      }
+    )
     val replayPlayers = game.getPlayers.map(p => {
       val hasTech = techTypes.map(tech => (convert(tech), p.hasResearched(tech))).toMap
-      val hasUpgrade = upgradeTypes.map(up => (convert(up), p.getUpgradeLevel(up))).toMap
+      val hasUpgrade = upgradeTypes.map(up => convert(up) -> p.getUpgradeLevel(up)).toMap
       ReplayPlayer(p.getID, hasTech, hasUpgrade)
     })
-    log.debug("Sending replay frame")
-    local ! ReplayPlayers(
-        frame,
-        replayPlayers)
+    log.info("Sending replay frame, {}/{}", frame.frame, frame.frameCount)
+    val msg = ReplayPlayers(frame, replayPlayers)
+    persister.saves.put(ToSave(None, Some(msg)))
   }
 
   override def onEnd(b: Boolean): Unit = {
-    local ! ReplayDone
+    log.info("Replay Ended")
   }
 
   override def onUnitDestroy(unit: BwUnit): Unit = {
@@ -81,10 +80,9 @@ class BwListener(val local: ActorRef, val mirror: Mirror) extends DefaultBWListe
   override def onStart(): Unit = {
     replayNum += 1
     val game = mirror.getGame
+    game.setLocalSpeed(0)
+    game.setGUI(false)
     map = ReplayMap(game.mapName(), MapSize(game.mapHeight(), game.mapWidth()))
-    // getplayers
-    // update replay map
-    // update replay num
   }
 
   lazy val techTypes =

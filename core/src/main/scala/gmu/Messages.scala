@@ -7,6 +7,11 @@ import gmu.Unit.UnitType
 import gmu.Upgrade.UpgradeType
 import gmu.Weapon.WeaponType
 
+import scala.pickling._
+import scala.pickling.binary._
+import scala.pickling.static._
+import scala.pickling.Defaults._
+
 case class UnitTypeAttributes(armor: Int,
                               isDetector: Boolean,
                               isFlyer: Boolean,

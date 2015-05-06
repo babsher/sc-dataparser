@@ -38,14 +38,14 @@
       <version>1.7.10</version>
     </dependency>
     <dependency>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongodb-driver</artifactId>
+      <version>3.0.0</version>
+    </dependency>
+    <dependency>
       <groupId>net.debasishg</groupId>
       <artifactId>redisclient_2.11</artifactId>
       <version>2.15</version>
-    </dependency>
-    <dependency>
-      <groupId>org.scala-lang.modules</groupId>
-      <artifactId>scala-pickling_2.11</artifactId>
-      <version>0.10.0</version>
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>

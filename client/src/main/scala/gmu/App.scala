@@ -3,9 +3,15 @@ package gmu
 import akka.actor.{Actor, ActorSystem, Props}
 import akka.event.Logging
 import bwapi.Mirror
+import com.mongodb.client.model.UpdateOptions
+import com.mongodb.{MongoClientOptions, BasicDBObject, MongoClient, WriteConcern}
 import com.typesafe.config.ConfigFactory
-import gmu.ReplayDone
 import gmu.UnitState.UnitState
+import org.bson.Document
+import scala.pickling._
+import scala.pickling.binary._
+import scala.pickling.static._
+import scala.pickling.Defaults._
 
 import scala.collection.mutable
 
@@ -13,106 +19,48 @@ case class GameUnit(state: UnitState, unit: bwapi.Unit, replayFrame: ReplayFrame
 
 object Local extends App {
 
-  implicit val system = ActorSystem("LocalSystem", ConfigFactory.load())
+//  implicit val system = ActorSystem("LocalSystem", ConfigFactory.load())
 //  val localActor = system.actorOf(FromConfig.props(Props[LocalActor]), "localRouter")
-  val localActor = system.actorOf(Props[LocalActor], "localActor")
+
+//  val localActor = system.actorOf(Props(new LocalActor()), "localActor")
 
   val mirror = new Mirror()
-  val listener = new BwListener(localActor, mirror)
+  val listener = new BwListener(mirror)
   mirror.getModule.setEventListener(listener)
 
   mirror.startGame()
 }
 
-class LocalActor() extends Actor {
+class LocalActor() extends Actor with ReplayPickles with ReplayConversions {
   val log = Logging(context.system, this)
 
-  val remote = context.actorSelection("akka.tcp://Zerg@192.168.1.250:2552/user/zergRouter")
-  remote ! WakeUp
+  val mongo = new MongoClient("192.168.1.250", MongoClientOptions.builder()
+    .connectionsPerHost(32)
+    .writeConcern(WriteConcern.UNACKNOWLEDGED)
+    .build())
+
+  val db = mongo.getDatabase("sc")
+  val units = db.getCollection("units")
+  val players = db.getCollection("players")
+
+//  val remote = context.actorSelection("akka.tcp://Zerg@192.168.1.250:2552/user/zergRouter")
+//  remote ! WakeUp
 
   def receive = {
     case GameUnit(state, unit, frame) =>
-      remote ! replayUnit(state, unit, frame)
+      val msg = replayUnit(state, unit, frame)
+      units.insertOne(new Document("id", getKey(msg)).append("units", msg.pickle.value))
+//      units.updateOne(new BasicDBObject("id", getKey(msg)),
+//        new BasicDBObject("$push", new BasicDBObject("units", msg.pickle.value)),
+//        new UpdateOptions().upsert(true)
+//      )
+//      remote ! replayUnit(state, unit, frame)
     case msg: ReplayPlayers =>
       log.info("Got replay frame, sending {}/{}", msg.frame.frame, msg.frame.frameCount)
-      remote ! msg
+      players.insertOne(new Document("id", getKey(msg)).append("players", msg.pickle.value))
+//      remote ! msg
     case ReplayDone =>
       log.info("Done")
-      remote ! ReplayDone
+//      remote ! ReplayDone
   }
-
-  def replayUnit(state: UnitState.Value, unit: bwapi.Unit, frame: ReplayFrame): ReplayUnit = {
-    val orderTarget = unit.getOrderTarget
-    val orderTargetId :Int = if(unit.getOrderTarget != null) unit.getOrderTarget.getID else -1
-
-    val targetId :Int = if(unit.getTarget != null) unit.getTarget.getID else -1
-    val energy = Option(unit.getEnergy)
-
-    ReplayUnit(
-      frame,
-      UnitState.Created eq state,
-      UnitState.Destroyed eq state,
-      unit.getID,
-      unit.getPlayer.getID,
-      unit.getPosition,
-      Velocity(unit.getVelocityX, unit.getVelocityY),
-      unit.getType.getRace,
-      unit.getInitialHitPoints,
-      unit.getHitPoints,
-      unit.getShields,
-      unit.getType,
-      if(energy.isEmpty) -1 else energy.get,
-      unit.getOrder,
-      orderTargetId,
-      unit.getOrderTargetPosition,
-      targetId,
-      unit.getTargetPosition,
-      unit.getGroundWeaponCooldown,
-      unit.getAirWeaponCooldown,
-      unit.getSpellCooldown
-    )
-  }
-
-  implicit def convert[T](sq: collection.mutable.Seq[T]): collection.immutable.Seq[T] =
-    collection.immutable.Seq[T](sq:_*)
-
-  implicit def convert(race: bwapi.Race): gmu.Race.RaceType =
-    gmu.Race.fromName(race.toString)
-
-  implicit def convertToEnum(unitType: bwapi.UnitType): gmu.Unit.UnitType =
-    gmu.Unit.fromName(unitType.toString)
-
-  implicit def convert(order: bwapi.Order): gmu.Order.OrderType =
-    gmu.Order.fromName(order.toString)
-
-  implicit def convert(pos: bwapi.Position): gmu.RPosition =
-    RPosition(pos.getX, pos.getY)
-
-  implicit def convert(unitType: bwapi.UnitType): gmu.UnitTypeAttributes =
-    UnitTypeAttributes(
-      unitType.armor,
-      unitType.isDetector,
-      unitType.isFlyer,
-      unitType.isMechanical,
-      unitType.isOrganic,
-      unitType.isRobotic,
-      unitType.isWorker,
-      unitType.isBuilding,
-      unitType.groundWeapon,
-      unitType.groundWeapon,
-      unitType.airWeapon,
-      unitType.airWeapon,
-      unitType.destroyScore
-    )
-
-  implicit def convert(weaponType: bwapi.WeaponType): gmu.Weapon.WeaponType =
-    gmu.Weapon.fromName(weaponType.toString)
-
-  implicit def convertToWeaponTypeInfo(weaponType: bwapi.WeaponType): gmu.WeaponTypeInfo =
-    WeaponTypeInfo(weaponType.damageAmount(),
-      weaponType.damageCooldown(),
-      weaponType.maxRange(),
-      weaponType.minRange(),
-      weaponType.medianSplashRadius())
 }
-
