@@ -1,12 +1,8 @@
 package gmu
 
-import org.bson.Document
-
-import scala.pickling.{Unpickler, Pickler}
-
+import com.mongodb.BasicDBObject
 import scala.pickling._
 import scala.pickling.binary._
-import scala.pickling.static._
 import scala.pickling.Defaults._
 
 trait ReplayPickles {
@@ -34,12 +30,12 @@ trait ReplayPickles {
   implicit val replayersPickler = Pickler.generate[gmu.ReplayPlayers]
   implicit val replayersUnplicker = Unpickler.generate[gmu.ReplayPlayers]
 
-  def getKey(frame: ReplayFrame): Document =
-    new Document("replay", frame.replay).append("frame", frame.frame)
+  def getKey(frame: ReplayFrame): BasicDBObject =
+    new BasicDBObject("replay", frame.replay).append("frame", frame.frame)
 
-  def getKey(players: ReplayPlayers): Document =
+  def getKey(players: ReplayPlayers): BasicDBObject =
     getKey(players.frame)
 
-  def getKey(u: ReplayUnit): Document =
+  def getKey(u: ReplayUnit): BasicDBObject =
     getKey(u.frame).append("id", u.id)
 }

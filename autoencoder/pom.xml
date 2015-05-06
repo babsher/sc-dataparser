@@ -13,21 +13,21 @@
     <artifactId>autoencoder</artifactId>
 
     <properties>
-        <nd4j.version>0.0.3.5.5.3-SNAPSHOT</nd4j.version>
-        <dl4j.version>0.0.3.3.3.alpha1-SNAPSHOT</dl4j.version>
+        <nd4j.version>0.0.3.5.5.2</nd4j.version>
+        <dl4j.version>0.0.3.3</dl4j.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>gmu</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>client</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver</artifactId>
-            <version>3.0.0</version>
+            <artifactId>mongo-java-driver</artifactId>
+            <version>2.13.1</version>
         </dependency>
 
         <dependency>
@@ -64,11 +64,11 @@
             <version>6.5</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-instrumentation</artifactId>
-            <version>${nd4j.version}</version>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.nd4j</groupId>-->
+            <!--<artifactId>nd4j-instrumentation</artifactId>-->
+            <!--<version>${nd4j.version}</version>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>org.deeplearning4j</groupId>
             <artifactId>deeplearning4j-nlp</artifactId>

@@ -7,8 +7,7 @@ import scala.pickling.binary._
 import scala.pickling.static._
 import scala.pickling.Defaults._
 
-import com.mongodb.{WriteConcern, MongoClientOptions, MongoClient}
-import org.bson.Document
+import com.mongodb.{BasicDBObject, WriteConcern, MongoClientOptions, MongoClient}
 import org.slf4j.LoggerFactory
 
 class Persister {
@@ -26,7 +25,7 @@ class Persister {
 
 class Mover(val p: Persister, val mongo: MongoClient) extends Runnable with ReplayPickles with ReplayConversions {
   val log = LoggerFactory.getLogger(classOf[Mover])
-  val db = mongo.getDatabase("sc")
+  val db = mongo.getDB("sc")
   val units = db.getCollection("units")
   val players = db.getCollection("players")
 
@@ -36,13 +35,13 @@ class Mover(val p: Persister, val mongo: MongoClient) extends Runnable with Repl
         val toSave = p.saves.take()
         toSave.players match {
           case Some(player) =>
-            players.insertOne(new Document("id", getKey(player)).append("players", player.pickle.value))
+            players.insert(new BasicDBObject("id", getKey(player)).append("players", player.pickle.value))
             log.info("Saves size {}", p.saves.size())
           case None =>
         }
         toSave.unit match {
           case Some(unit) =>
-            units.insertOne(new Document("id", getKey(unit)).append("units", unit.pickle.value))
+            units.insert(new BasicDBObject("id", getKey(unit)).append("units", unit.pickle.value))
           case None =>
         }
       }

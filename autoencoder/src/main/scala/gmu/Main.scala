@@ -1,7 +1,16 @@
 package gmu
 
+import com.google.common.collect.Lists
+import org.deeplearning4j.distributions.Distributions
+import org.deeplearning4j.models.featuredetectors.rbm.RBM
+import org.nd4j.linalg.api.activation.Activations
+import org.apache.commons.math3.random.MersenneTwister
+import org.apache.commons.math3.random.RandomGenerator
+import org.nd4j.linalg.api.ndarray.INDArray
+import org.nd4j.linalg.util.ArrayUtil
+
 import scala.collection.JavaConversions._
-import com.mongodb.{WriteConcern, MongoClientOptions, MongoClient}
+import com.mongodb._
 import org.deeplearning4j.datasets.fetchers.BaseDataFetcher
 import org.deeplearning4j.datasets.iterator.{DataSetFetcher, BaseDatasetIterator, DataSetIterator}
 import org.deeplearning4j.datasets.iterator.impl.{IrisDataSetIterator, LFWDataSetIterator}
@@ -9,81 +18,82 @@ import org.deeplearning4j.eval.Evaluation
 import org.deeplearning4j.nn.api.{OptimizationAlgorithm, LayerFactory}
 import org.deeplearning4j.nn.conf.{NeuralNetConfiguration, MultiLayerConfiguration}
 import org.deeplearning4j.nn.layers.factory.{PretrainLayerFactory, LayerFactories}
-import org.deeplearning4j.nn.layers.feedforward.rbm.RBM
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
-import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.slf4j.LoggerFactory
 
-object Main extends App {
-  val log = LoggerFactory.getLogger(classOf[gmu.Main])
+import scala.pickling._
+import scala.pickling.static._
+import scala.pickling.binary._
+import scala.pickling.Defaults._
+import scala.pickling.shareNothing._
 
-  Nd4j.MAX_SLICES_TO_PRINT = -1
-  Nd4j.MAX_ELEMENTS_PER_SLICE = -1
-  val conf = new NeuralNetConfiguration.Builder()
-    .iterations(100)
-    .layerFactory(new PretrainLayerFactory(classOf[RBM]))
-    .weightInit(WeightInit.DISTRIBUTION).dist(Nd4j.getDistributions().createUniform(0,1))
-    .activationFunction("tanh").momentum(0.9)
-    .optimizationAlgo(OptimizationAlgorithm.LBFGS)
-    .constrainGradientToUnitNorm(true).k(1).regularization(true).l2(2e-4)
-    .visibleUnit(RBM.VisibleUnit.GAUSSIAN).hiddenUnit(RBM.HiddenUnit.RECTIFIED)
-    .lossFunction(LossFunctions.LossFunction.RMSE_XENT)
-    .learningRate(1e-1f)
-    .iterationListener(new ScoreIterationListener(2))
-    .nIn(4).nOut(3).list(2)
-    .hiddenLayerSizes(3)
-    .build()
-
-  val d = new MultiLayerNetwork(conf)
-
-  val iter = new IrisDataSetIterator(150, 150)
-
-  val next = iter.next()
-
-  Nd4j.writeTxt(next.getFeatureMatrix,"iris.txt","\t")
-
-  next.normalizeZeroMeanZeroUnitVariance()
-
-  val testAndTrain = next.splitTestAndTrain(110)
-  val train = testAndTrain.getTrain
-
-  d.fit(train)
-
-  val test = testAndTrain.getTest
-
-
-  val eval = new Evaluation()
-  val output = d.output(test.getFeatureMatrix)
-  eval.eval(test.getLabels,output)
-  log.info("Score " + eval.stats())
+class ReplayIterator(batch: Int, numExamples: Int) extends BaseDatasetIterator(batch, numExamples, new ReplayDataFetcher) {
 }
 
-class Main {
-  // needed for logging
-}
+class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
+  val log = LoggerFactory.getLogger(classOf[ReplayDataFetcher])
+  var replayId = 2
+  var frame = 1
 
-class ReplayIterator(batch: Int, numExamples: Int, fetcher: DataSetFetcher) extends BaseDatasetIterator(batch, numExamples, fetcher) {
-}
-
-class ReplayDataFetcher extends BaseDataFetcher {
-  val mongo = new MongoClient("192.168.1.250", MongoClientOptions.builder()
+  val mongo = new MongoClient("localhost", MongoClientOptions.builder()
     .connectionsPerHost(32)
     .build())
 
   override def fetch(numExamples: Int): Unit = {
-    val db = mongo.getDatabase("sc")
-    val units = db.getCollection("units")
-    val players = db.getCollection("players")
+    val db = mongo.getDB("sc")
+    val unitsCol = db.getCollection("units")
+    val playersCol = db.getCollection("players")
 
-    val examples = java.util.ArrayList[DataSet]
-
+    val examples = new java.util.ArrayList[DataSet]
     val d = new DataSet()
 
+    val cur = playersCol.find(new BasicDBObject("id.replay", replayId))
+      .sort(new BasicDBObject("id.frame", 1))
+      .skip(frame)
+      .limit(numExamples)
+    while(cur.hasNext) {
+      val replayPlayer = cur.next()
+      val id: DBObject = replayPlayer.get("id").asInstanceOf[DBObject]
+      log.debug("Found id {}", id)
+      val unitsCur = unitsCol.find(
+        new BasicDBObject("id.replay", id.get("replay"))
+          .append("id.frame", id.get("frame")))
+      log.debug("Found {} units", unitsCur.count())
+
+      val rawPlayers = players(replayPlayer).players
+        .sortWith(_.id > _.id)
+        .map(serialize)
+
+      val u: Seq[ReplayUnit] = Iterator
+        .continually(units(unitsCur.next()))
+        .dropWhile(_ => unitsCur.hasNext)
+        .toList
+
+      val rawUnits = u.filter(u => u.race == Race.Zerg || u.race == Race.Protoss || u.race == Race.Terran)
+        .sortWith((e1, e2) => e1.position.y > e2.position.y && e1.position.x > e1.position.x)
+        .map(serialize)
+
+      rawPlayers.addAll(rawUnits)
+
+      frame += 1
+      d.addFeatureVector(Nd4j.create(ArrayUtil.combineDouble(rawPlayers)))
+    }
+
     initializeCurrFromList(examples)
+  }
+
+  def units(u: DBObject): ReplayUnit = {
+    val raw: Array[Byte] = u.get("units").asInstanceOf[Array[Byte]]
+    raw.unpickle[ReplayUnit]
+  }
+
+  def players(p: DBObject): ReplayPlayers = {
+    val raw: Array[Byte] = p.get("players").asInstanceOf[Array[Byte]]
+    raw.unpickle[ReplayPlayers]
   }
 
   def serialize(u: ReplayUnit): Array[Double] = {
