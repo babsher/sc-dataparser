@@ -17,7 +17,7 @@ class BwListener(val mirror: Mirror, var replayNum: Int, val dbName: String) ext
   var map: ReplayMap = null
 
   val persister = new Persister(dbName)
-  val rl = RateLimiter.create(10)
+  val rl = RateLimiter.create(2)
 
   def getState(unit: BwUnit) = {
     if (current.contains(unit.getID)) {

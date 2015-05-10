@@ -12,7 +12,7 @@ class Persister(val dbName: String) {
     .writeConcern(WriteConcern.UNACKNOWLEDGED)
     .build())
 
-  val rl = RateLimiter.create(10)
+  val rl = RateLimiter.create(1)
   val saves = new LinkedBlockingQueue[ToSave](1024 * 2)
   val pool = Executors.newFixedThreadPool(12)
   for(x <- Range(1, 12)) {
