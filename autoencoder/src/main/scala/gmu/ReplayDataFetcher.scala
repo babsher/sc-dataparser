@@ -104,13 +104,13 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
   }
 
   def makeUnit(u: DBObject): ReplayUnit = {
-    val raw: String = u.get("units").asInstanceOf[String]
-    raw.unpickle[ReplayUnit]
+    val raw = u.get("units").asInstanceOf[Array[Byte]]
+    unpickleUnit(raw)
   }
 
   def makePlayer(p: DBObject): ReplayPlayers = {
-    val raw: String = p.get("players").asInstanceOf[String]
-    raw.unpickle[ReplayPlayers]
+    val raw = p.get("players").asInstanceOf[Array[Byte]]
+    unpicklePlayers(raw)
   }
 
   def serialize(u: ReplayUnit): Array[Double] = {

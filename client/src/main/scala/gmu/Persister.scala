@@ -11,9 +11,9 @@ class Persister(val dbName: String) {
     .writeConcern(WriteConcern.UNACKNOWLEDGED)
     .build())
 
-  val saves = new LinkedBlockingQueue[ToSave](1024 * 75)
-  val pool = Executors.newFixedThreadPool(6)
-  for(x <- Range(1, 6)) {
+  val saves = new LinkedBlockingQueue[ToSave](1024 * 2)
+  val pool = Executors.newFixedThreadPool(12)
+  for(x <- Range(1, 12)) {
     pool.execute(new Mover(this, mongo, dbName))
   }
 }
@@ -46,4 +46,4 @@ class Mover(val p: Persister, val mongo: MongoClient, val dbName: String) extend
   }
 }
 
-case class ToSave(unit: Option[ReplayUnit], players: Option[ReplayPlayers])
+case class ToSave(unit: Option[Seq[ReplayUnit]], players: Option[ReplayPlayers])

@@ -37,15 +37,17 @@ class BwListener(val mirror: Mirror, var replayNum: Int, val dbName: String) ext
       game.getFrameCount,
       game.getReplayFrameCount)
 
-    log.info("Sending units {}", mirror.getGame.getAllUnits.size())
-    mirror.getGame.getAllUnits.foreach(unit => {
+    val units = mirror.getGame.getAllUnits.filter(u => { // dont save non player units
+        val r = u.getType.getRace
+        r == bwapi.Race.Protoss || r == bwapi.Race.Zerg || r == bwapi.Race.Terran
+      })
+      .map(unit => {
         val state = getState(unit)
-        val u = replayUnit(state, unit, frame)
-        if(u.race == Race.Zerg || u.race == Race.Protoss || u.race == Race.Terran) {
-          persister.saves.put(ToSave(Some(u), None))
-        } // dont save non player units
-      }
-    )
+        replayUnit(state, unit, frame)
+      }).toSeq
+    log.info("Sending units {}/{}", units.size, mirror.getGame.getAllUnits.size())
+    persister.saves.put(ToSave(Some(units), None))
+
     val replayPlayers = game.getPlayers.map(p => {
       val hasTech = techTypes.map(tech => (convert(tech), p.hasResearched(tech))).toMap
       val hasUpgrade = upgradeTypes.map(up => convert(up) -> p.getUpgradeLevel(up)).toMap
