@@ -62,7 +62,7 @@ object Upgrade {
   case object Chitinous_Plating extends UpgradeType
   case object Anabolic_Synthesis extends UpgradeType
   case object Charon_Boosters extends UpgradeType
-  case object Upgrade_60 extends UpgradeType
+//  case object Upgrade_60 extends UpgradeType
   case object None extends UpgradeType
   case object Unknown extends UpgradeType
 
@@ -117,7 +117,7 @@ object Upgrade {
   Chitinous_Plating,
   Anabolic_Synthesis,
   Charon_Boosters,
-  Upgrade_60,
+//  Upgrade_60,
   None,
   Unknown
   )

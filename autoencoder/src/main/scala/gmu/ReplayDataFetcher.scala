@@ -1,5 +1,7 @@
 package gmu
 
+import java.util
+
 import com.mongodb._
 import org.deeplearning4j.datasets.fetchers.BaseDataFetcher
 import org.deeplearning4j.datasets.iterator.BaseDatasetIterator
@@ -15,7 +17,7 @@ import scala.util.Random
 
 object ReplayDataFetcher {
   def playerSize: Int = {
-    Tech.values.size + Upgrade.values.size
+    Race.values.size + Tech.values.size + Upgrade.values.size
   }
 
   def unitSize: Int = {
@@ -27,24 +29,25 @@ object ReplayDataFetcher {
 
 class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
   val log = LoggerFactory.getLogger(classOf[ReplayDataFetcher])
-  var replayId = 2
-  var frame = 1
+  var replayId = 1
+  var frame = 0
 
-  inputColumns = 2 * ReplayDataFetcher.playerSize +
-    ReplayDataFetcher.numUnits * ReplayDataFetcher.unitSize
+  log.info("Player size {}", ReplayDataFetcher.playerSize)
+  log.info("Unit size {}*{}", ReplayDataFetcher.numUnits, ReplayDataFetcher.unitSize + "=" + (ReplayDataFetcher.numUnits * ReplayDataFetcher.unitSize).toString)
+
+  inputColumns = 2 * ReplayDataFetcher.playerSize + ReplayDataFetcher.numUnits * ReplayDataFetcher.unitSize
   numOutcomes = inputColumns
 
   val mongo = new MongoClient("localhost", MongoClientOptions.builder()
     .connectionsPerHost(16)
     .build())
+  val db = mongo.getDB("json")
+  val unitsCol = db.getCollection("units")
+  val playersCol = db.getCollection("players")
 
   totalExamples = mongo.getDB("sc").getCollection("players").find().count()
 
-  override def fetch(numExamples: Int): Unit = {
-    val db = mongo.getDB("json")
-    val unitsCol = db.getCollection("units")
-    val playersCol = db.getCollection("players")
-
+  def getExamples(numExamples: Int): java.util.ArrayList[DataSet] = {
     val examples = new java.util.ArrayList[DataSet]
 
     val cur = playersCol.find(new BasicDBObject("id.replay", replayId))
@@ -55,33 +58,46 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
       val replayPlayer = cur.next()
       val id: DBObject = replayPlayer.get("id").asInstanceOf[DBObject]
       log.debug("Found id {}", id)
-      val unitsCur = unitsCol.find(
+
+      val unitsCur = unitsCol.findOne(
         new BasicDBObject("id.replay", id.get("replay"))
           .append("id.frame", id.get("frame")))
-      log.debug("Found {} units", unitsCur.count())
 
       val rawPlayers = makePlayer(replayPlayer).players
         .sortWith(_.id > _.id)
+        .subList(0, 2)
         .map(serialize)
 
-      val units = Iterator.continually(unitsCur.next())
-        .takeWhile(_=>unitsCur.hasNext)
-        .map(makeUnit)
-        .toList
+      val units = makeUnit(unitsCur)
+      log.debug("Found {} units", units.size)
 
       // Randomly select numUnits of units
       val rawUnits = getUnits(units)
+      log.debug("Serialzied {} units, size:{}", rawUnits.size, rawUnits.map(_.length).sum)
 
-      val data = new java.util.ArrayList(rawPlayers)
+      val data = new java.util.ArrayList[Array[Double]]()
+      data.addAll(rawPlayers)
       data.addAll(rawUnits)
 
       frame += 1
       cursor += 1
 
+      log.debug("Data size rawPlayers:{}, rawUnits:{}", rawPlayers.map(_.length).sum, rawUnits.map(_.length).sum)
       val valuesArray = Nd4j.create(ArrayUtil.combineDouble(data))
-      println("Got values " + valuesArray)
+      log.debug("Got values size {} ", valuesArray.length())
       examples.add(new DataSet(valuesArray, valuesArray))
     }
+
+    if(examples.size() > numExamples) {
+      replayId += 1
+      frame = 0
+
+    }
+    examples
+  }
+
+  override def fetch(numExamples: Int): Unit = {
+    val examples = getExamples(numExamples)
 
     log.debug("Initializing {} examples", examples.size())
     initializeCurrFromList(examples)
@@ -103,7 +119,7 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
     }
   }
 
-  def makeUnit(u: DBObject): ReplayUnit = {
+  def makeUnit(u: DBObject): Seq[ReplayUnit] = {
     val raw = u.get("units").asInstanceOf[Array[Byte]]
     unpickleUnit(raw)
   }
@@ -114,19 +130,20 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
   }
 
   def serialize(u: ReplayUnit): Array[Double] = {
-    category(Unit.values, u.unitType) ++
-    Array[Double](u.hp.toDouble / u.initalHp.toDouble) ++
-    category(Order.values, u.order)
+    val unit = category(Unit.values, u.unitType) ++ Array[Double](u.hp.toDouble / u.initalHp.toDouble) ++ category(Order.values, u.order)
+    log.debug("Actual unit size {}", unit.length)
+    unit
   }
 
   def serialize(p: ReplayPlayer): Array[Double] = {
-//    category(Race.values, p.race) ++
     val tech = p.tech.toList
       .map(t => binary(t._2))
     val upgrades = p.upgrades.toList
       .map(t => t._2.toDouble)
 
-    Array.concat(tech.toArray, upgrades.toArray)
+    val playerRaw = category(Race.values, p.race) ++ Array.concat(tech.toArray, upgrades.toArray)
+    log.debug("Actual player size {}", playerRaw.length)
+    playerRaw
   }
 
   def category[E](values: Seq[E], value: E): Array[Double] = {
