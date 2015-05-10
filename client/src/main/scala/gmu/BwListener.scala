@@ -1,5 +1,6 @@
 package gmu
 
+import com.google.common.util.concurrent.RateLimiter
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
@@ -16,6 +17,7 @@ class BwListener(val mirror: Mirror, var replayNum: Int, val dbName: String) ext
   var map: ReplayMap = null
 
   val persister = new Persister(dbName)
+  val rl = RateLimiter.create(10)
 
   def getState(unit: BwUnit) = {
     if (current.contains(unit.getID)) {
@@ -45,7 +47,9 @@ class BwListener(val mirror: Mirror, var replayNum: Int, val dbName: String) ext
         val state = getState(unit)
         replayUnit(state, unit, frame)
       }).toSeq
-    log.info("Sending units {}/{}", units.size, mirror.getGame.getAllUnits.size())
+    if(rl.tryAcquire()) {
+      log.info("Sending units {}/{}", units.size, mirror.getGame.getAllUnits.size())
+    }
     persister.saves.put(ToSave(Some(units), None))
 
     val replayPlayers = game.getPlayers.map(p => {
@@ -53,7 +57,9 @@ class BwListener(val mirror: Mirror, var replayNum: Int, val dbName: String) ext
       val hasUpgrade = upgradeTypes.map(up => convert(up) -> p.getUpgradeLevel(up)).toMap
       ReplayPlayer(p.getID, p.getRace, p.supplyUsed(), p.supplyTotal(), hasTech, hasUpgrade)
     })
-    log.info("Sending replay frame, {}/{}", frame.frame, frame.frameCount)
+    if(rl.tryAcquire()) {
+      log.info("Sending replay frame, {}/{}", frame.frame, frame.frameCount)
+    }
     val msg = ReplayPlayers(frame, replayPlayers)
     persister.saves.put(ToSave(None, Some(msg)))
   }

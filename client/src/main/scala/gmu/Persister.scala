@@ -2,6 +2,7 @@ package gmu
 
 import java.util.concurrent._
 
+import com.google.common.util.concurrent.RateLimiter
 import com.mongodb.{BasicDBObject, WriteConcern, MongoClientOptions, MongoClient}
 import org.slf4j.LoggerFactory
 
@@ -11,14 +12,15 @@ class Persister(val dbName: String) {
     .writeConcern(WriteConcern.UNACKNOWLEDGED)
     .build())
 
+  val rl = RateLimiter.create(10)
   val saves = new LinkedBlockingQueue[ToSave](1024 * 2)
   val pool = Executors.newFixedThreadPool(12)
   for(x <- Range(1, 12)) {
-    pool.execute(new Mover(this, mongo, dbName))
+    pool.execute(new Mover(this, mongo, dbName, rl))
   }
 }
 
-class Mover(val p: Persister, val mongo: MongoClient, val dbName: String) extends Runnable with ReplayPickles with ReplayConversions {
+class Mover(val p: Persister, val mongo: MongoClient, val dbName: String, val rl: RateLimiter) extends Runnable with ReplayPickles with ReplayConversions {
   val log = LoggerFactory.getLogger(classOf[Mover])
   val db = mongo.getDB(dbName)
   val units = db.getCollection("units")
@@ -31,7 +33,9 @@ class Mover(val p: Persister, val mongo: MongoClient, val dbName: String) extend
         toSave.players match {
           case Some(player) =>
             players.insert(new BasicDBObject("id", getKey(player)).append("players", pickle(player)))
-            log.info("Saves size {}", p.saves.size())
+            if(rl.tryAcquire()) {
+              log.info("Saves size {}", p.saves.size())
+            }
           case None =>
         }
         toSave.unit match {
