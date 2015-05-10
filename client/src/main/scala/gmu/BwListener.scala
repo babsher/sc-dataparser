@@ -7,7 +7,7 @@ import bwapi.{Unit => BwUnit, _}
 
 import scala.collection.mutable
 
-class BwListener(val mirror: Mirror, var replayNum: Int) extends DefaultBWListener with ReplayConversions with ReplayPickles {
+class BwListener(val mirror: Mirror, var replayNum: Int, val dbName: String) extends DefaultBWListener with ReplayConversions with ReplayPickles {
   val log = LoggerFactory.getLogger("gmu.BwListener")
 
   lazy val game = mirror.getGame
@@ -15,7 +15,7 @@ class BwListener(val mirror: Mirror, var replayNum: Int) extends DefaultBWListen
   val destroyed: mutable.Set[Int] = mutable.Set[Int]()
   var map: ReplayMap = null
 
-  val persister = new Persister()
+  val persister = new Persister(dbName)
 
   def getState(unit: BwUnit) = {
     if (current.contains(unit.getID)) {
@@ -40,14 +40,16 @@ class BwListener(val mirror: Mirror, var replayNum: Int) extends DefaultBWListen
     log.info("Sending units {}", mirror.getGame.getAllUnits.size())
     mirror.getGame.getAllUnits.foreach(unit => {
         val state = getState(unit)
-        val msg = replayUnit(state, unit, frame)
-        persister.saves.put(ToSave(Some(msg), None))
+        val u = replayUnit(state, unit, frame)
+        if(u.race == Race.Zerg || u.race == Race.Protoss || u.race == Race.Terran) {
+          persister.saves.put(ToSave(Some(u), None))
+        } // dont save non player units
       }
     )
     val replayPlayers = game.getPlayers.map(p => {
       val hasTech = techTypes.map(tech => (convert(tech), p.hasResearched(tech))).toMap
       val hasUpgrade = upgradeTypes.map(up => convert(up) -> p.getUpgradeLevel(up)).toMap
-      ReplayPlayer(p.getID, hasTech, hasUpgrade)
+      ReplayPlayer(p.getID, p.getRace, p.supplyUsed(), p.supplyTotal(), hasTech, hasUpgrade)
     })
     log.info("Sending replay frame, {}/{}", frame.frame, frame.frameCount)
     val msg = ReplayPlayers(frame, replayPlayers)
@@ -82,6 +84,10 @@ class BwListener(val mirror: Mirror, var replayNum: Int) extends DefaultBWListen
     game.setLocalSpeed(0)
     game.setGUI(false)
     map = ReplayMap(game.mapName(), MapSize(game.mapHeight(), game.mapWidth()))
+  }
+
+  implicit def convertRace(r: bwapi.Race): gmu.Race.RaceType = {
+    gmu.Race.fromName(r.toString)
   }
 
   lazy val techTypes =

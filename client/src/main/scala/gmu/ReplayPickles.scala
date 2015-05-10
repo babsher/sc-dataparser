@@ -1,13 +1,12 @@
 package gmu
 
 import com.mongodb.BasicDBObject
+
 import scala.pickling._
-import scala.pickling.binary._
+import scala.pickling.json._
 import scala.pickling.Defaults._
 
 trait ReplayPickles {
-  implicit val racePickler = Pickler.generate[gmu.Race.RaceType]
-  implicit val raceUnplicker = Unpickler.generate[gmu.Race.RaceType]
 
   implicit val velPickler = Pickler.generate[gmu.Velocity]
   implicit val velUnpickler = Unpickler.generate[gmu.Velocity]
@@ -29,6 +28,22 @@ trait ReplayPickles {
 
   implicit val replayersPickler = Pickler.generate[gmu.ReplayPlayers]
   implicit val replayersUnplicker = Unpickler.generate[gmu.ReplayPlayers]
+
+  def pickle(player: ReplayPlayers): String = {
+    player.pickle.value
+  }
+
+  def pickle(unit: ReplayUnit): String = {
+    unit.pickle.value
+  }
+
+  def unpickleUnit(b: String): ReplayUnit = {
+    b.unpickle[ReplayUnit]
+  }
+
+  def unpicklePlayers(b: String): ReplayPlayers = {
+    b.unpickle[ReplayPlayers]
+  }
 
   def getKey(frame: ReplayFrame): BasicDBObject =
     new BasicDBObject("replay", frame.replay).append("frame", frame.frame)

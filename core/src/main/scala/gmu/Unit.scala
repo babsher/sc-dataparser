@@ -3,7 +3,10 @@ package gmu
 object Unit {
 
   def fromName(name: String): UnitType = {
-    values.filter(_.toString.startsWith(name)).head
+    mapping.get(name) match {
+      case Some(v) => v
+      case scala.None => throw new IllegalArgumentException("Unknown type " + name)
+    }
   }
 
   sealed trait UnitType
@@ -219,6 +222,8 @@ object Unit {
   case object Factories extends UnitType
   case object Unknown extends UnitType
 
+  lazy val mapping = values.map(v => v.toString -> v).toMap
+
   val values = List(Terran_Marine,
     Hero_Jim_Raynor_Marine,
     Terran_Ghost,
@@ -430,4 +435,6 @@ object Unit {
     Buildings,
     Factories,
     Unknown)
+  
+
 }

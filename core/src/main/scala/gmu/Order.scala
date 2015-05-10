@@ -4,8 +4,13 @@ object Order {
   sealed trait OrderType
 
   def fromName(name: String): OrderType = {
-    values.filter(_.toString == name).head
+    mapping.get(name) match {
+      case Some(v) => v
+      case scala.None => throw new IllegalArgumentException("Unknown type " + name)
+    }
   }
+
+  lazy val mapping = values.map(v => v.toString -> v).toMap
 
   case object Die extends OrderType
   case object Stop extends OrderType

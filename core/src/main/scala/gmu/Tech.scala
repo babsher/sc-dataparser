@@ -3,7 +3,10 @@ package gmu
 object Tech {
 
   def fromName(name: String): TechType = {
-    values.filter(_.toString == name).head
+    mapping.get(name) match {
+      case Some(v) => v
+      case scala.None => throw new IllegalArgumentException("Unknown type " + name)
+    }
   }
 
   sealed trait TechType
@@ -43,6 +46,8 @@ object Tech {
   case object None extends TechType
   case object Unknown extends TechType
   case object Nuclear_Strike extends TechType
+
+  lazy val mapping = values.map(v => v.toString -> v).toMap
 
   val values = List(
     Stim_Packs,

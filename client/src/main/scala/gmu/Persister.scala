@@ -1,16 +1,11 @@
 package gmu
 
-import java.util.Optional
 import java.util.concurrent._
-import scala.pickling._
-import scala.pickling.binary._
-import scala.pickling.static._
-import scala.pickling.Defaults._
 
 import com.mongodb.{BasicDBObject, WriteConcern, MongoClientOptions, MongoClient}
 import org.slf4j.LoggerFactory
 
-class Persister {
+class Persister(val dbName: String) {
   val mongo = new MongoClient("192.168.1.250", MongoClientOptions.builder()
     .connectionsPerHost(32)
     .writeConcern(WriteConcern.UNACKNOWLEDGED)
@@ -19,13 +14,13 @@ class Persister {
   val saves = new LinkedBlockingQueue[ToSave](1024 * 75)
   val pool = Executors.newFixedThreadPool(6)
   for(x <- Range(1, 6)) {
-    pool.execute(new Mover(this, mongo))
+    pool.execute(new Mover(this, mongo, dbName))
   }
 }
 
-class Mover(val p: Persister, val mongo: MongoClient) extends Runnable with ReplayPickles with ReplayConversions {
+class Mover(val p: Persister, val mongo: MongoClient, val dbName: String) extends Runnable with ReplayPickles with ReplayConversions {
   val log = LoggerFactory.getLogger(classOf[Mover])
-  val db = mongo.getDB("sc")
+  val db = mongo.getDB(dbName)
   val units = db.getCollection("units")
   val players = db.getCollection("players")
 
@@ -35,13 +30,13 @@ class Mover(val p: Persister, val mongo: MongoClient) extends Runnable with Repl
         val toSave = p.saves.take()
         toSave.players match {
           case Some(player) =>
-            players.insert(new BasicDBObject("id", getKey(player)).append("players", player.pickle.value))
+            players.insert(new BasicDBObject("id", getKey(player)).append("players", pickle(player)))
             log.info("Saves size {}", p.saves.size())
           case None =>
         }
         toSave.unit match {
           case Some(unit) =>
-            units.insert(new BasicDBObject("id", getKey(unit)).append("units", unit.pickle.value))
+            units.insert(new BasicDBObject("id", getKey(unit)).append("units", pickle(unit)))
           case None =>
         }
       }

@@ -15,8 +15,13 @@ object Race {
   case object Unknown extends RaceType
 
   def fromName(name: String): RaceType = {
-    values.filter(_.toString == name).head
+    mapping.get(name) match {
+      case Some(v) => v
+      case scala.None => throw new IllegalArgumentException("Unknown type " + name)
+    }
   }
+
+  lazy val mapping = values.map(v => v.toString -> v).toMap
 
   val values = List(
   Zerg,

@@ -3,8 +3,13 @@ package gmu
 object Weapon {
 
   def fromName(name: String): WeaponType = {
-    value.filter(_.toString == name).head
+    mapping.get(name) match {
+      case Some(v) => v
+      case scala.None => throw new IllegalArgumentException("Unknown type " + name)
+    }
   }
+
+  lazy val mapping = values.map(v => v.toString -> v).toMap
 
   sealed trait WeaponType
   case object Gauss_Rifle extends WeaponType
@@ -110,7 +115,7 @@ object Weapon {
   case object None extends WeaponType
   case object Unknown extends WeaponType
 
-  val value = List(
+  val values = List(
     Gauss_Rifle,
   Gauss_Rifle_Jim_Raynor,
   C_10_Canister_Rifle,

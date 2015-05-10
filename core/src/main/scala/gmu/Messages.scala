@@ -2,15 +2,8 @@ package gmu
 
 import gmu.Order.OrderType
 import gmu.Race.RaceType
-import gmu.Tech.TechType
 import gmu.Unit.UnitType
-import gmu.Upgrade.UpgradeType
 import gmu.Weapon.WeaponType
-
-import scala.pickling._
-import scala.pickling.binary._
-import scala.pickling.static._
-import scala.pickling.Defaults._
 
 case class UnitTypeAttributes(armor: Int,
                               isDetector: Boolean,
@@ -40,8 +33,11 @@ case class MapSize(x: Int, y: Int)
 case class ReplayMap(mapName: String, size: MapSize)
 
 case class ReplayPlayer(id: Int,
-                        tech: Map[TechType, Boolean],
-                        upgrades: Map[UpgradeType, Int])
+                        race: RaceType,
+                        supply: Int,
+                        totalSupply: Int,
+                        tech: Map[Tech.TechType, Boolean],
+                        upgrades: Map[Upgrade.UpgradeType, Int])
 
 case class Velocity(x: Double, y: Double)
 

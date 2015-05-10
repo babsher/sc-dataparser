@@ -3,8 +3,14 @@ package gmu
 object Upgrade {
 
   def fromName(name: String): UpgradeType = {
-    values.filter(_.toString == name).head
+    mapping.get(name) match {
+      case Some(v) => v
+      case scala.None => throw new IllegalArgumentException("Unknown type " + name)
+    }
   }
+
+  lazy val mapping = values.map(v => v.toString -> v).toMap
+
   sealed trait UpgradeType
   case object Terran_Infantry_Armor extends UpgradeType
   case object Terran_Vehicle_Plating extends UpgradeType
