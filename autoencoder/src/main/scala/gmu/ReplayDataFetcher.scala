@@ -21,31 +21,33 @@ object ReplayDataFetcher {
   }
 
   def unitSize: Int = {
-    Unit.values.size + 1 + Order.values.size
+    Unit.values.size + 1 + Order.values.size + 2
   }
 
-  val numUnits = 25
+  val numUnits = 10
 }
 
 class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
   val log = LoggerFactory.getLogger(classOf[ReplayDataFetcher])
   var replayId = 1
-  var frame = 0
+  var frame = 1500
 
   log.info("Player size {}", ReplayDataFetcher.playerSize)
   log.info("Unit size {}*{}", ReplayDataFetcher.numUnits, ReplayDataFetcher.unitSize + "=" + (ReplayDataFetcher.numUnits * ReplayDataFetcher.unitSize).toString)
 
   inputColumns = 2 * ReplayDataFetcher.playerSize + ReplayDataFetcher.numUnits * ReplayDataFetcher.unitSize
   numOutcomes = inputColumns
+  val dbName = "sc"
 
   val mongo = new MongoClient("localhost", MongoClientOptions.builder()
     .connectionsPerHost(16)
     .build())
-  val db = mongo.getDB("json")
+
+  val db = mongo.getDB(dbName)
   val unitsCol = db.getCollection("units")
   val playersCol = db.getCollection("players")
 
-  totalExamples = mongo.getDB("sc").getCollection("players").find().count()
+  totalExamples = mongo.getDB(dbName).getCollection("players").find().count()
 
   def getExamples(numExamples: Int): java.util.ArrayList[DataSet] = {
     val examples = new java.util.ArrayList[DataSet]
@@ -69,11 +71,9 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
         .map(serialize)
 
       val units = makeUnit(unitsCur)
-      log.debug("Found {} units", units.size)
 
       // Randomly select numUnits of units
       val rawUnits = getUnits(units)
-      log.debug("Serialzied {} units, size:{}", rawUnits.size, rawUnits.map(_.length).sum)
 
       val data = new java.util.ArrayList[Array[Double]]()
       data.addAll(rawPlayers)
@@ -82,16 +82,14 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
       frame += 1
       cursor += 1
 
-      log.debug("Data size rawPlayers:{}, rawUnits:{}", rawPlayers.map(_.length).sum, rawUnits.map(_.length).sum)
       val valuesArray = Nd4j.create(ArrayUtil.combineDouble(data))
-      log.debug("Got values size {} ", valuesArray.length())
-      examples.add(new DataSet(valuesArray, valuesArray))
+      val ds = new DataSet(valuesArray, valuesArray)
+      examples.add(ds)
     }
 
     if(examples.size() > numExamples) {
       replayId += 1
       frame = 0
-
     }
     examples
   }
@@ -107,11 +105,11 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
     val filtered = units.filter(u => u.race == Race.Zerg || u.race == Race.Protoss || u.race == Race.Terran)
     if(filtered.size > ReplayDataFetcher.numUnits) {
       Random.shuffle(filtered).subList(0, ReplayDataFetcher.numUnits)
-        .sortWith((e1, e2) => e1.position.y > e2.position.y && e1.position.x > e1.position.x)
+//        .sortWith((e1, e2) => e1.position.y > e2.position.y && e1.position.x > e1.position.x)
         .map(serialize)
     } else {
       val units = Random.shuffle(filtered).subList(0, ReplayDataFetcher.numUnits)
-        .sortWith((e1, e2) => e1.position.y > e2.position.y && e1.position.x > e1.position.x)
+//        .sortWith((e1, e2) => e1.position.y > e2.position.y && e1.position.x > e1.position.x)
         .map(serialize)
       val zeros = for(x <- Range(0, ReplayDataFetcher.numUnits - filtered.size))
         yield Array.fill(ReplayDataFetcher.unitSize)(0.0)
@@ -130,9 +128,10 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
   }
 
   def serialize(u: ReplayUnit): Array[Double] = {
-    val unit = category(Unit.values, u.unitType) ++ Array[Double](u.hp.toDouble / u.initalHp.toDouble) ++ category(Order.values, u.order)
-    log.debug("Actual unit size {}", unit.length)
-    unit
+    category(Unit.values, u.unitType) ++
+//    Array[Double](u.position.x, u.position.y) ++
+    Array[Double](u.hp.toDouble / u.initalHp.toDouble) ++
+    category(Order.values, u.order)
   }
 
   def serialize(p: ReplayPlayer): Array[Double] = {
@@ -142,7 +141,6 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
       .map(t => t._2.toDouble)
 
     val playerRaw = category(Race.values, p.race) ++ Array.concat(tech.toArray, upgrades.toArray)
-    log.debug("Actual player size {}", playerRaw.length)
     playerRaw
   }
 
@@ -155,5 +153,5 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
   }
 }
 
-class ReplayIterator(batch: Int, numExamples: Int) extends BaseDatasetIterator(batch, numExamples, new ReplayDataFetcher) {
+class ReplayIterator(batch: Int, featch: ReplayDataFetcher) extends BaseDatasetIterator(batch, featch.totalExamples(), featch) {
 }
