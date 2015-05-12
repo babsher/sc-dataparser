@@ -16,26 +16,22 @@ import scala.pickling.json._
 import scala.util.Random
 
 object ReplayDataFetcher {
-  def playerSize: Int = {
-    Race.values.size + Tech.values.size + Upgrade.values.size
-  }
-
-  def unitSize: Int = {
-    Unit.values.size + 1 + Order.values.size + 2
-  }
+  def playerSize: Int = Race.values.size + Tech.values.size + Upgrade.values.size
+  def unitSize: Int = Unit.values.size + 1 + Order.values.size + 2
 
   val numUnits = 10
+  val vision = 320 // px
+  val visionTiles = vision / 32
 }
 
 class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
+  import ReplayDataFetcher._
+
   val log = LoggerFactory.getLogger(classOf[ReplayDataFetcher])
   var replayId = 1
-  var frame = 1500
+  var frame = 1
 
-  log.info("Player size {}", ReplayDataFetcher.playerSize)
-  log.info("Unit size {}*{}", ReplayDataFetcher.numUnits, ReplayDataFetcher.unitSize + "=" + (ReplayDataFetcher.numUnits * ReplayDataFetcher.unitSize).toString)
-
-  inputColumns = 2 * ReplayDataFetcher.playerSize + ReplayDataFetcher.numUnits * ReplayDataFetcher.unitSize
+  inputColumns =  visionTiles * visionTiles * unitSize
   numOutcomes = inputColumns
   val dbName = "sc"
 
@@ -43,61 +39,65 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
     .connectionsPerHost(16)
     .build())
 
-  val db = mongo.getDB(dbName)
-  val unitsCol = db.getCollection("units")
-  val playersCol = db.getCollection("players")
+  var per = new MongoPersistence(mongo, dbName)
 
-  totalExamples = mongo.getDB(dbName).getCollection("players").find().count()
+  totalExamples = per.numberOfExamples
 
-  def getExamples(numExamples: Int): java.util.ArrayList[DataSet] = {
-    val examples = new java.util.ArrayList[DataSet]
+  def getExamples(numExamples: Int): Seq[DataSet] = {
+    val examples =
 
-    val cur = playersCol.find(new BasicDBObject("id.replay", replayId))
-      .sort(new BasicDBObject("id.frame", 1))
-      .skip(frame)
-      .limit(numExamples)
-    while(cur.hasNext) {
-      val replayPlayer = cur.next()
-      val id: DBObject = replayPlayer.get("id").asInstanceOf[DBObject]
-      log.debug("Found id {}", id)
+    per.findPlayers(replayId, frame, numExamples)
+      .map({
+        case (id: DBObject, players: ReplayPlayers) => {
+          log.debug("Found id {}", id)
 
-      val unitsCur = unitsCol.findOne(
-        new BasicDBObject("id.replay", id.get("replay"))
-          .append("id.frame", id.get("frame")))
+          val units = per.findUnits(id).toSeq
+          val center = units(new Random().nextInt(units.size))
+          val unitTiles = units.map(u => toTuple(u.position) -> u).toMap
+          val map = per.findMap(players.frame.map.mapName)
+          val mapTiles = map.cells.map(c => (c.x, c.y) -> c.height).toMap
+          val vision = Array.ofDim[Double](visionTiles, visionTiles, unitSize)
+          val centerPos = toTuple(center.position)
 
-      val rawPlayers = makePlayer(replayPlayer).players
-        .sortWith(_.id > _.id)
-        .subList(0, 2)
-        .map(serialize)
+          for(x <- Range(-1*visionTiles, visionTiles);
+            y  <- Range(-1*visionTiles, visionTiles)) {
+            vision(x)(y) = Array.concat(
+              Array(mapTiles.get((x,y)) match {
+                case Some(height) => height
+                case None => -1
+              }),
+              unitTiles.get((x,y)) match {
+                case Some(u) => serialize(u)
+                case None => Array.fill(unitSize)(0.0)
+              }
+            )
+          }
 
-      val units = makeUnit(unitsCur)
+          // Randomly select numUnits of units
+          val rawUnits = getUnits(units)
 
-      // Randomly select numUnits of units
-      val rawUnits = getUnits(units)
+          frame += 1
+          cursor += 1
 
-      val data = new java.util.ArrayList[Array[Double]]()
-      data.addAll(rawPlayers)
-      data.addAll(rawUnits)
+          val valuesArray = Nd4j.create(ArrayUtil.combineDouble(rawUnits))
+          new DataSet(valuesArray, valuesArray)
+        }
+      })
 
-      frame += 1
-      cursor += 1
-
-      val valuesArray = Nd4j.create(ArrayUtil.combineDouble(data))
-      val ds = new DataSet(valuesArray, valuesArray)
-      examples.add(ds)
-    }
-
-    if(examples.size() > numExamples) {
+    if(examples.size > numExamples) {
       replayId += 1
       frame = 0
+      examples.addAll(getExamples(numExamples - examples.size))
     }
     examples
   }
 
+  def add(x: (Int, Int), y: (Int, Int)): (Int, Int) = (x._1 + y._1, x._2 + y._2)
+
   override def fetch(numExamples: Int): Unit = {
     val examples = getExamples(numExamples)
 
-    log.debug("Initializing {} examples", examples.size())
+    log.debug("Initializing {} examples", examples.size)
     initializeCurrFromList(examples)
   }
 
@@ -113,16 +113,6 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
         yield Array.fill(ReplayDataFetcher.unitSize)(0.0)
       units ++ zeros
     }
-  }
-
-  def makeUnit(u: DBObject): Seq[ReplayUnit] = {
-    val raw = u.get("units").asInstanceOf[Array[Byte]]
-    unpickleUnit(raw)
-  }
-
-  def makePlayer(p: DBObject): ReplayPlayers = {
-    val raw = p.get("players").asInstanceOf[Array[Byte]]
-    unpicklePlayers(raw)
   }
 
   def serialize(u: ReplayUnit): Array[Double] = {

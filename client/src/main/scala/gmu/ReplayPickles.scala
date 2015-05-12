@@ -72,4 +72,6 @@ trait ReplayPickles {
   def unpicklePlayers(b: Array[Byte]): ReplayPlayers = {
     decompress(b).unpickle[ReplayPlayers]
   }
+
+  def toTuple(pos: RPosition): (Int, Int) = (pos.x / 32, pos.y / 32)
 }

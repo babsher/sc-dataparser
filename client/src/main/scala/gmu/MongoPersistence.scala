@@ -5,6 +5,7 @@ import com.mongodb.{DBObject, BasicDBObject, MongoClient}
 import scala.collection.JavaConversions._
 
 class MongoPersistence(val mongo: MongoClient, val dbName: String) extends ReplayConversions with ReplayPickles {
+
   var db = mongo.getDB(dbName)
   var units = db.getCollection("units")
   var players = db.getCollection("players")
@@ -40,6 +41,33 @@ class MongoPersistence(val mongo: MongoClient, val dbName: String) extends Repla
 
   def insert(bwMap: BwMap): Unit = {
     maps.insert(new BasicDBObject("map", bwMap.replayMap.mapName).append("value", pickle(bwMap)))
+  }
+
+  def findUnits(id: DBObject): Iterable[ReplayUnit] = {
+    units.findOne(
+      new BasicDBObject("id.replay", id.get("replay"))
+        .append("id.frame", id.get("frame")))
+  }
+
+  def findMap(mapName: String): BwMap = {
+    val map = maps.findOne(new BasicDBObject("map", mapName))
+      .get("value").asInstanceOf[Array[Byte]]
+    unpickleMap(map)
+  }
+
+  def findPlayers(replayId: Int, frame: Int, limit: Int): Iterable[(DBObject, ReplayPlayers)] = {
+    players.find(new BasicDBObject("id.replay", replayId))
+      .sort(new BasicDBObject("id.frame", 1))
+      .skip(frame)
+      .limit(limit)
+      .asInstanceOf[java.lang.Iterable[DBObject]]
+      .map(obj =>
+        (obj.get("id").asInstanceOf[DBObject],
+          unpicklePlayers(obj.get("players").asInstanceOf[Array[Byte]])))
+  }
+
+  def numberOfExamples: Int = {
+    players.find().count()
   }
 
   def getKey(frame: ReplayFrame): BasicDBObject =
