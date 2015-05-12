@@ -1,12 +1,11 @@
 package gmu
 
 import java.util.concurrent._
-
 import com.google.common.util.concurrent.RateLimiter
-import com.mongodb.{BasicDBObject, WriteConcern, MongoClientOptions, MongoClient}
+import com.mongodb.{WriteConcern, MongoClientOptions, MongoClient}
 import org.slf4j.LoggerFactory
 
-class Persister(val dbName: String) {
+class Persister(val dbName: String) extends ReplayPickles {
   val mongo = new MongoClient("192.168.1.250", MongoClientOptions.builder()
     .connectionsPerHost(32)
     .writeConcern(WriteConcern.UNACKNOWLEDGED)
@@ -20,11 +19,9 @@ class Persister(val dbName: String) {
   }
 }
 
-class Mover(val p: Persister, val mongo: MongoClient, val dbName: String, val rl: RateLimiter) extends Runnable with ReplayPickles with ReplayConversions {
+class Mover(val p: Persister, val mongo: MongoClient, val dbName: String, val rl: RateLimiter) extends Runnable {
   val log = LoggerFactory.getLogger(classOf[Mover])
-  val db = mongo.getDB(dbName)
-  val units = db.getCollection("units")
-  val players = db.getCollection("players")
+  val per = new MongoPersistence(mongo, dbName)
 
   override def run(): Unit = {
     try {
@@ -32,7 +29,7 @@ class Mover(val p: Persister, val mongo: MongoClient, val dbName: String, val rl
         val toSave = p.saves.take()
         toSave.players match {
           case Some(player) =>
-            players.insert(new BasicDBObject("id", getKey(player)).append("players", pickle(player)))
+            per.insert(player)
             if(rl.tryAcquire()) {
               log.info("Saves size {}", p.saves.size())
             }
@@ -40,7 +37,12 @@ class Mover(val p: Persister, val mongo: MongoClient, val dbName: String, val rl
         }
         toSave.unit match {
           case Some(unit) =>
-            units.insert(new BasicDBObject("id", getKey(unit)).append("units", pickle(unit)))
+            per.insert(unit)
+          case None =>
+        }
+        toSave.mapInfo match {
+          case Some(m) =>
+            per.insert(m)
           case None =>
         }
       }
@@ -50,4 +52,4 @@ class Mover(val p: Persister, val mongo: MongoClient, val dbName: String, val rl
   }
 }
 
-case class ToSave(unit: Option[Seq[ReplayUnit]], players: Option[ReplayPlayers])
+case class ToSave(unit: Option[Seq[ReplayUnit]], players: Option[ReplayPlayers], mapInfo: Option[BwMap])

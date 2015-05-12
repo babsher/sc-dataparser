@@ -105,11 +105,9 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
     val filtered = units.filter(u => u.race == Race.Zerg || u.race == Race.Protoss || u.race == Race.Terran)
     if(filtered.size > ReplayDataFetcher.numUnits) {
       Random.shuffle(filtered).subList(0, ReplayDataFetcher.numUnits)
-//        .sortWith((e1, e2) => e1.position.y > e2.position.y && e1.position.x > e1.position.x)
         .map(serialize)
     } else {
       val units = Random.shuffle(filtered).subList(0, ReplayDataFetcher.numUnits)
-//        .sortWith((e1, e2) => e1.position.y > e2.position.y && e1.position.x > e1.position.x)
         .map(serialize)
       val zeros = for(x <- Range(0, ReplayDataFetcher.numUnits - filtered.size))
         yield Array.fill(ReplayDataFetcher.unitSize)(0.0)

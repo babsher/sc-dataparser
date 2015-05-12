@@ -75,5 +75,8 @@ object UnitState extends Enumeration {
   val Created, Normal, Destroyed = Value
 }
 
+case class BwMap(replayMap: ReplayMap, cells: Seq[MapCell])
+case class MapCell(x: Int, y: Int, height: Int)
+
 case object WakeUp
 case object ReplayDone

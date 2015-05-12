@@ -30,6 +30,12 @@ trait ReplayPickles {
   implicit val replayersPickler = Pickler.generate[gmu.ReplayPlayers]
   implicit val replayersUnplicker = Unpickler.generate[gmu.ReplayPlayers]
 
+  implicit val mapCellPickler = Pickler.generate[gmu.MapCell]
+  implicit val mapCellUnpickler = Unpickler.generate[gmu.MapCell]
+
+  implicit val bwMapPickler = Pickler.generate[gmu.BwMap]
+  implicit val bwMapUnpickler = Unpickler.generate[gmu.BwMap]
+
   def pickle(player: ReplayPlayers): Array[Byte] = {
     compress(player.pickle.value)
   }
@@ -51,6 +57,14 @@ trait ReplayPickles {
     compress(units.pickle.value)
   }
 
+  def pickle(bwMap: BwMap): Array[Byte] = {
+    compress(bwMap.pickle.value)
+  }
+
+  def unpickleMap(b: Array[Byte]): BwMap = {
+    decompress(b).unpickle[BwMap]
+  }
+
   def unpickleUnit(b: Array[Byte]): Seq[ReplayUnit] = {
     decompress(b).unpickle[Seq[ReplayUnit]]
   }
@@ -58,16 +72,4 @@ trait ReplayPickles {
   def unpicklePlayers(b: Array[Byte]): ReplayPlayers = {
     decompress(b).unpickle[ReplayPlayers]
   }
-
-  def getKey(frame: ReplayFrame): BasicDBObject =
-    new BasicDBObject("replay", frame.replay).append("frame", frame.frame)
-
-  def getKey(players: ReplayPlayers): BasicDBObject =
-    getKey(players.frame)
-
-  def getKey(units: Seq[ReplayUnit]): BasicDBObject =
-    getKey(units.head.frame)
-
-  def getKey(u: ReplayUnit): BasicDBObject =
-    getKey(u.frame).append("id", u.id)
 }

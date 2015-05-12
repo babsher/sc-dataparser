@@ -1,5 +1,6 @@
 package gmu
 
+import bwta.BWTA
 import com.google.common.util.concurrent.RateLimiter
 import org.slf4j.LoggerFactory
 
@@ -50,7 +51,7 @@ class BwListener(val mirror: Mirror, var replayNum: Int, val dbName: String) ext
     if(rl.tryAcquire()) {
       log.info("Sending units {}/{}", units.size, mirror.getGame.getAllUnits.size())
     }
-    persister.saves.put(ToSave(Some(units), None))
+    persister.saves.put(ToSave(Some(units), None, None))
 
     val replayPlayers = game.getPlayers.map(p => {
       val hasTech = techTypes.map(tech => (convert(tech), p.hasResearched(tech))).toMap
@@ -61,7 +62,7 @@ class BwListener(val mirror: Mirror, var replayNum: Int, val dbName: String) ext
       log.info("Sending replay frame, {}/{}", frame.frame, frame.frameCount)
     }
     val msg = ReplayPlayers(frame, replayPlayers)
-    persister.saves.put(ToSave(None, Some(msg)))
+    persister.saves.put(ToSave(None, Some(msg), None))
   }
 
   override def onEnd(b: Boolean): Unit = {
@@ -92,6 +93,13 @@ class BwListener(val mirror: Mirror, var replayNum: Int, val dbName: String) ext
     game.setLocalSpeed(0)
     game.setGUI(false)
     map = ReplayMap(game.mapName(), MapSize(game.mapHeight(), game.mapWidth()))
+    if(!persister.mapExists(map.mapName)) {
+      val mapInfo = for(
+        x <- Range(0, map.size.x);
+        y <- Range(0, map.size.y)
+      ) yield MapCell(x, y, game.getGroundHeight(x,y))
+      persister.saves.put(ToSave(None, None, Some(mapInfo)))
+    }
   }
 
   implicit def convertRace(r: bwapi.Race): gmu.Race.RaceType = {
