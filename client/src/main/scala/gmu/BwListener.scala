@@ -2,6 +2,7 @@ package gmu
 
 import bwta.BWTA
 import com.google.common.util.concurrent.RateLimiter
+import com.mongodb.{WriteConcern, MongoClientOptions, MongoClient}
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
@@ -17,8 +18,15 @@ class BwListener(val mirror: Mirror, var replayNum: Int, val dbName: String) ext
   val destroyed: mutable.Set[Int] = mutable.Set[Int]()
   var map: ReplayMap = null
 
-  val persister = new Persister(dbName)
+  val mongo = new MongoClient("192.168.1.250", MongoClientOptions.builder()
+    .connectionsPerHost(32)
+    .writeConcern(WriteConcern.UNACKNOWLEDGED)
+    .build())
+
+  val persister = new Persister(mongo, dbName)
   val rl = RateLimiter.create(2)
+
+  val per = new MongoPersistence(mongo, dbName)
 
   def getState(unit: BwUnit) = {
     if (current.contains(unit.getID)) {
@@ -93,12 +101,12 @@ class BwListener(val mirror: Mirror, var replayNum: Int, val dbName: String) ext
     game.setLocalSpeed(0)
     game.setGUI(false)
     map = ReplayMap(game.mapName(), MapSize(game.mapHeight(), game.mapWidth()))
-    if(!persister.mapExists(map.mapName)) {
+    if(!per.mapExists(map.mapName)) {
       val mapInfo = for(
         x <- Range(0, map.size.x);
         y <- Range(0, map.size.y)
       ) yield MapCell(x, y, game.getGroundHeight(x,y))
-      persister.saves.put(ToSave(None, None, Some(mapInfo)))
+      persister.saves.put(ToSave(None, None, Some(BwMap(map, mapInfo))))
     }
   }
 

@@ -5,11 +5,7 @@ import com.google.common.util.concurrent.RateLimiter
 import com.mongodb.{WriteConcern, MongoClientOptions, MongoClient}
 import org.slf4j.LoggerFactory
 
-class Persister(val dbName: String) extends ReplayPickles {
-  val mongo = new MongoClient("192.168.1.250", MongoClientOptions.builder()
-    .connectionsPerHost(32)
-    .writeConcern(WriteConcern.UNACKNOWLEDGED)
-    .build())
+class Persister(val mongo: MongoClient, val dbName: String) extends ReplayPickles {
 
   val rl = RateLimiter.create(1)
   val saves = new LinkedBlockingQueue[ToSave](1024 * 2)
