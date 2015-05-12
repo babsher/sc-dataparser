@@ -46,7 +46,10 @@ class MongoPersistence(val mongo: MongoClient, val dbName: String) extends Repla
   def findUnits(id: DBObject): Iterable[ReplayUnit] = {
     units.findOne(
       new BasicDBObject("id.replay", id.get("replay"))
-        .append("id.frame", id.get("frame")))
+      .append("id.frame", id.get("frame")))
+      .asInstanceOf[java.lang.Iterable[DBObject]]
+      .map(_.get("units").asInstanceOf[Array[Byte]])
+      .flatMap(unpickleUnit)
   }
 
   def findMap(mapName: String): BwMap = {
