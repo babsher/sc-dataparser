@@ -1,23 +1,18 @@
 package gmu
 
-import java.util
-
 import com.mongodb._
 import org.deeplearning4j.datasets.fetchers.BaseDataFetcher
 import org.deeplearning4j.datasets.iterator.BaseDatasetIterator
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.factory.Nd4j
-import org.nd4j.linalg.util.ArrayUtil
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
-import scala.pickling._
-import scala.pickling.json._
 import scala.util.Random
 
 object ReplayDataFetcher {
   def playerSize: Int = Race.values.size + Tech.values.size + Upgrade.values.size
-  def unitSize: Int = Unit.values.size + 1 + Order.values.size + 2
+  def unitSize: Int = 8
 
   val numUnits = 10
   val vision = 320 // px
@@ -39,14 +34,13 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
     .connectionsPerHost(16)
     .build())
 
-  var per = new MongoPersistence(mongo, dbName)
+  val per = new MongoPersistence(mongo, dbName)
+  val unitTypes = per.unitTypes
 
   totalExamples = per.numberOfExamples
 
   def getExamples(numExamples: Int): Seq[DataSet] = {
-    val examples =
-
-    per.findPlayers(replayId, frame, numExamples)
+    val examples = per.findPlayers(replayId, frame, numExamples)
       .map({
         case (id: DBObject, players: ReplayPlayers) => {
           log.debug("Found id {}", id)
@@ -57,29 +51,26 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
           val map = per.findMap(players.frame.map.mapName)
           val mapTiles = map.cells.map(c => (c.x, c.y) -> c.height).toMap
           val vision = Array.ofDim[Double](visionTiles, visionTiles, unitSize)
-          val centerPos = toTuple(center.position)
+          val centerPos = (center.position.x / 32, center.position.y / 32)
 
           for(x <- Range(-1*visionTiles, visionTiles);
             y  <- Range(-1*visionTiles, visionTiles)) {
             vision(x)(y) = Array.concat(
-              Array(mapTiles.get((x,y)) match {
+              Array(mapTiles.get(add(centerPos, (x,y))) match {
                 case Some(height) => height
                 case None => -1
               }),
-              unitTiles.get((x,y)) match {
+              unitTiles.get(add(centerPos, (x,y))) match {
                 case Some(u) => serialize(u)
                 case None => Array.fill(unitSize)(0.0)
               }
             )
           }
 
-          // Randomly select numUnits of units
-          val rawUnits = getUnits(units)
-
           frame += 1
           cursor += 1
 
-          val valuesArray = Nd4j.create(ArrayUtil.combineDouble(rawUnits))
+          val valuesArray = Nd4j.create(flatten(vision))
           new DataSet(valuesArray, valuesArray)
         }
       })
@@ -87,9 +78,25 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
     if(examples.size > numExamples) {
       replayId += 1
       frame = 0
-      examples.addAll(getExamples(numExamples - examples.size))
+      getExamples(numExamples - examples.size) ++ examples
+    } else {
+      examples.toSeq
     }
-    examples
+  }
+
+  def flatten(a: Array[Array[Array[Double]]]): Array[Double] = {
+    val xDim = a.length
+    val yDim = a(0).length
+    val zDim = a(0)(0).length
+    val ret = new Array[Double](xDim * yDim * zDim)
+    var count = 0
+    for(x <- Range(0, xDim);
+      y <- Range(0, yDim);
+      z <- Range(0, zDim)) {
+      ret(count) = a(x)(y)(z)
+      count = count + 1
+    }
+    ret
   }
 
   def add(x: (Int, Int), y: (Int, Int)): (Int, Int) = (x._1 + y._1, x._2 + y._2)
@@ -104,10 +111,10 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
   def getUnits(units: Seq[ReplayUnit]): Seq[Array[Double]] = {
     val filtered = units.filter(u => u.race == Race.Zerg || u.race == Race.Protoss || u.race == Race.Terran)
     if(filtered.size > ReplayDataFetcher.numUnits) {
-      Random.shuffle(filtered).subList(0, ReplayDataFetcher.numUnits)
+      Random.shuffle(filtered).slice(0, ReplayDataFetcher.numUnits)
         .map(serialize)
     } else {
-      val units = Random.shuffle(filtered).subList(0, ReplayDataFetcher.numUnits)
+      val units = Random.shuffle(filtered).slice(0, ReplayDataFetcher.numUnits)
         .map(serialize)
       val zeros = for(x <- Range(0, ReplayDataFetcher.numUnits - filtered.size))
         yield Array.fill(ReplayDataFetcher.unitSize)(0.0)
@@ -115,11 +122,17 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
     }
   }
 
-  def serialize(u: ReplayUnit): Array[Double] = {
-    category(Unit.values, u.unitType) ++
-//    Array[Double](u.position.x, u.position.y) ++
-    Array[Double](u.hp.toDouble / u.initalHp.toDouble) ++
-    category(Order.values, u.order)
+  def serialize(unit: ReplayUnit): Array[Double] = {
+    val u: BwUnitType = unitTypes.get(unit.unitType).get
+    Array[Double](
+        binary(u.isFlyer),
+        binary(u.isWorker),
+        binary(u.groundWeapon.targetsAir || u.airWeapon.targetsAir),
+        binary(u.groundWeapon.targetsGround || u.airWeapon.targetsGround),
+        binary(u.canAttack),
+        binary(u.canProduce),
+        unit.hp.toDouble / unit.initalHp.toDouble) ++
+        category(Order.values, unit.order)
   }
 
   def serialize(p: ReplayPlayer): Array[Double] = {

@@ -1,6 +1,5 @@
 package gmu
 
-import com.mongodb.BasicDBObject
 import org.xerial.snappy.Snappy
 
 import scala.pickling._
@@ -36,8 +35,19 @@ trait ReplayPickles {
   implicit val bwMapPickler = Pickler.generate[gmu.BwMap]
   implicit val bwMapUnpickler = Unpickler.generate[gmu.BwMap]
 
+  implicit val bwUnitTypePickler = Pickler.generate[gmu.BwUnitType]
+  implicit val bwUnitTypeUnpickler = Unpickler.generate[gmu.BwUnitType]
+
   def pickle(player: ReplayPlayers): Array[Byte] = {
     compress(player.pickle.value)
+  }
+
+  def pickle(bwUnitType: Map[Unit.UnitType, BwUnitType]): Array[Byte] = {
+    compress(bwUnitType.pickle.value)
+  }
+
+  def unpickleUnitTypes(s: Array[Byte]): Map[Unit.UnitType, BwUnitType] = {
+    decompress(s).unpickle[Map[Unit.UnitType, BwUnitType]]
   }
 
   def compress(s: String): Array[Byte] = {

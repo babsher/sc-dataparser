@@ -2,7 +2,9 @@ package gmu
 
 import gmu.Order.OrderType
 import gmu.Race.RaceType
+import gmu.Tech.TechType
 import gmu.Unit.UnitType
+import gmu.Upgrade.UpgradeType
 import gmu.Weapon.WeaponType
 
 case class UnitTypeAttributes(armor: Int,
@@ -76,7 +78,85 @@ object UnitState extends Enumeration {
 }
 
 case class BwMap(replayMap: ReplayMap, cells: Seq[MapCell])
+
 case class MapCell(x: Int, y: Int, height: Int)
 
 case object WakeUp
+
 case object ReplayDone
+
+case class BwUnitType(
+                     untitType: gmu.Unit.UnitType,
+                     race: RaceType,
+                       requiredTech: TechType,
+                       cloakingTech: TechType,
+                       abilities: Seq[gmu.Tech.TechType],
+                       upgrades: Seq[gmu.Upgrade.UpgradeType],
+                       armorUpgrade: UpgradeType,
+                       maxHitPoints: Int,
+                       maxShields: Int,
+                       maxEnergy: Int,
+                       armor: Int,
+                       mineralPrice: Int,
+                       gasPrice: Int,
+                       buildTime: Int,
+                       supplyRequired: Int,
+                       supplyProvided: Int,
+                       spaceRequired: Int,
+                       spaceProvided: Int,
+                       buildScore: Int,
+                       destroyScore: Int,
+                       tileWidth: Int,
+                       tileHeight: Int,
+                       tileSize: RPosition,
+                       dimensionLeft: Int,
+                       dimensionUp: Int,
+                       dimensionRight: Int,
+                       dimensionDown: Int,
+                       width: Int,
+                       height: Int,
+                       seekRange: Int,
+                       sightRange: Int,
+                       groundWeapon: WeaponType,
+                       maxGroundHits: Int,
+                       airWeapon: WeaponType,
+                       maxAirHits: Int,
+                       topSpeed: Double,
+                       acceleration: Int,
+                       haltDistance: Int,
+                       turnRadius: Int,
+                       canProduce: Boolean,
+                       canAttack: Boolean,
+                       canMove: Boolean,
+                       isFlyer: Boolean,
+                       regeneratesHP: Boolean,
+                       isSpellcaster: Boolean,
+                       hasPermanentCloak: Boolean,
+                       isInvincible: Boolean,
+                       isOrganic: Boolean,
+                       isMechanical: Boolean,
+                       isRobotic: Boolean,
+                       isDetector: Boolean,
+                       isResourceContainer: Boolean,
+                       isResourceDepot: Boolean,
+                       isRefinery: Boolean,
+                       isWorker: Boolean,
+                       requiresPsi: Boolean,
+                       requiresCreep: Boolean,
+                       isTwoUnitsInOneEgg: Boolean,
+                       isBurrowable: Boolean,
+                       isCloakable: Boolean,
+                       isBuilding: Boolean,
+                       isAddon: Boolean,
+                       isFlyingBuilding: Boolean,
+                       isNeutral: Boolean,
+                       isHero: Boolean,
+                       isPowerup: Boolean,
+                       isBeacon: Boolean,
+                       isFlagBeacon: Boolean,
+                       isSpecialBuilding: Boolean,
+                       isSpell: Boolean,
+                       producesLarva: Boolean,
+                       isMineralField: Boolean,
+                       isCritter: Boolean,
+                       canBuildAddon: Boolean)

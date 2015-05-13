@@ -4,16 +4,34 @@ import com.mongodb.{DBObject, BasicDBObject, MongoClient}
 
 import scala.collection.JavaConversions._
 
-class MongoPersistence(val mongo: MongoClient, val dbName: String) extends ReplayConversions with ReplayPickles {
+class MongoPersistence(val mongo: MongoClient, val dbName: String)
+      extends ReplayConversions
+      with ReplayPickles {
 
-  var db = mongo.getDB(dbName)
-  var units = db.getCollection("units")
-  var players = db.getCollection("players")
-  var maps = db.getCollection("maps")
+  val db = mongo.getDB(dbName)
+  val units = db.getCollection("units")
+  val players = db.getCollection("players")
+  val maps = db.getCollection("maps")
+  val unitTypesCol = db.getCollection("unitTypes")
 
   def mapExists(mapName: String): Boolean = {
     val map = maps.findOne(new BasicDBObject("map", mapName))
     map != null
+  }
+
+  val unitTypesIsEmpty: Boolean = {
+    unitTypesCol.find().count() == 0
+  }
+
+  def insert(bwUnitType: Map[Unit.UnitType, BwUnitType]): Unit = {
+    unitTypesCol.insert(new BasicDBObject("_id", 1).append("types", pickle(bwUnitType)))
+  }
+
+  def unitTypes: Map[Unit.UnitType, BwUnitType] = {
+    unpickleUnitTypes(unitTypesCol
+      .findOne(new BasicDBObject("_id", 1))
+      .get("types")
+      .asInstanceOf[Array[Byte]])
   }
 
   def findReplays(): Seq[ReplayFrame] = {
