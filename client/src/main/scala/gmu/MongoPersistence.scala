@@ -62,12 +62,10 @@ class MongoPersistence(val mongo: MongoClient, val dbName: String)
   }
 
   def findUnits(id: DBObject): Iterable[ReplayUnit] = {
-    units.findOne(
+    val unit = units.findOne(
       new BasicDBObject("id.replay", id.get("replay"))
       .append("id.frame", id.get("frame")))
-      .asInstanceOf[java.lang.Iterable[DBObject]]
-      .map(_.get("units").asInstanceOf[Array[Byte]])
-      .flatMap(unpickleUnit)
+    unpickleUnit(unit.get("units").asInstanceOf[Array[Byte]])
   }
 
   def findMap(mapName: String): BwMap = {
@@ -77,11 +75,12 @@ class MongoPersistence(val mongo: MongoClient, val dbName: String)
   }
 
   def findPlayers(replayId: Int, frame: Int, limit: Int): Iterable[(DBObject, ReplayPlayers)] = {
-    players.find(new BasicDBObject("id.replay", replayId))
+    val cur = players.find(new BasicDBObject("id.replay", replayId))
       .sort(new BasicDBObject("id.frame", 1))
       .skip(frame)
       .limit(limit)
-      .asInstanceOf[java.lang.Iterable[DBObject]]
+
+    cur.asInstanceOf[java.lang.Iterable[DBObject]]
       .map(obj =>
         (obj.get("id").asInstanceOf[DBObject],
           unpicklePlayers(obj.get("players").asInstanceOf[Array[Byte]])))
