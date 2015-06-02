@@ -6,13 +6,19 @@ import scala.collection.JavaConversions._
 
 class MongoPersistence(val mongo: MongoClient, val dbName: String)
       extends ReplayConversions
-      with ReplayPickles {
+      with ReplayChill {
 
   val db = mongo.getDB(dbName)
   val units = db.getCollection("units")
   val players = db.getCollection("players")
   val maps = db.getCollection("maps")
   val unitTypesCol = db.getCollection("unitTypes")
+
+  players.createIndex(new BasicDBObject("id.replay", 1))
+  players.createIndex(new BasicDBObject("id.frame", 1))
+  units.createIndex(new BasicDBObject("id", 1))
+  units.createIndex(new BasicDBObject("id.frame", 1))
+  units.createIndex(new BasicDBObject("id.replay", 1))
 
   def mapExists(mapName: String): Boolean = {
     val map = maps.findOne(new BasicDBObject("map", mapName))

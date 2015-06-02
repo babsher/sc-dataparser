@@ -6,7 +6,7 @@ import scala.pickling._
 import scala.pickling.json._
 import scala.pickling.Defaults._
 
-trait ReplayPickles {
+trait ReplayPickles extends ReplaySerialization {
 
   implicit val velPickler = Pickler.generate[gmu.Velocity]
   implicit val velUnpickler = Unpickler.generate[gmu.Velocity]
@@ -38,18 +38,6 @@ trait ReplayPickles {
   implicit val bwUnitTypePickler = Pickler.generate[gmu.BwUnitType]
   implicit val bwUnitTypeUnpickler = Unpickler.generate[gmu.BwUnitType]
 
-  def pickle(player: ReplayPlayers): Array[Byte] = {
-    compress(player.pickle.value)
-  }
-
-  def pickle(bwUnitType: Map[Unit.UnitType, BwUnitType]): Array[Byte] = {
-    compress(bwUnitType.pickle.value)
-  }
-
-  def unpickleUnitTypes(s: Array[Byte]): Map[Unit.UnitType, BwUnitType] = {
-    decompress(s).unpickle[Map[Unit.UnitType, BwUnitType]]
-  }
-
   def compress(s: String): Array[Byte] = {
     Snappy.compress(s.getBytes("UTF-8"))
   }
@@ -59,29 +47,39 @@ trait ReplayPickles {
     new String(raw, "UTF-8")
   }
 
-  def pickle(unit: ReplayUnit): Array[Byte] = {
+  override def pickle(player: ReplayPlayers): Array[Byte] = {
+    compress(player.pickle.value)
+  }
+
+  override def pickle(bwUnitType: Map[Unit.UnitType, BwUnitType]): Array[Byte] = {
+    compress(bwUnitType.pickle.value)
+  }
+
+  override def unpickleUnitTypes(s: Array[Byte]): Map[Unit.UnitType, BwUnitType] = {
+    decompress(s).unpickle[Map[Unit.UnitType, BwUnitType]]
+  }
+
+  override def pickle(unit: ReplayUnit): Array[Byte] = {
     compress(unit.pickle.value)
   }
 
-  def pickle(units: Seq[ReplayUnit]): Array[Byte] = {
+  override def pickle(units: Seq[ReplayUnit]): Array[Byte] = {
     compress(units.pickle.value)
   }
 
-  def pickle(bwMap: BwMap): Array[Byte] = {
+  override def pickle(bwMap: BwMap): Array[Byte] = {
     compress(bwMap.pickle.value)
   }
 
-  def unpickleMap(b: Array[Byte]): BwMap = {
+  override def unpickleMap(b: Array[Byte]): BwMap = {
     decompress(b).unpickle[BwMap]
   }
 
-  def unpickleUnit(b: Array[Byte]): Seq[ReplayUnit] = {
+  override def unpickleUnit(b: Array[Byte]): Seq[ReplayUnit] = {
     decompress(b).unpickle[Seq[ReplayUnit]]
   }
 
-  def unpicklePlayers(b: Array[Byte]): ReplayPlayers = {
+  override def unpicklePlayers(b: Array[Byte]): ReplayPlayers = {
     decompress(b).unpickle[ReplayPlayers]
   }
-
-  def toTuple(pos: RPosition): (Int, Int) = (pos.x / 32, pos.y / 32)
 }
