@@ -50,12 +50,12 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
           val unitTiles = units.map(u => toTuple(u.position) -> u).toMap
           val map = per.findMap(players.frame.map.mapName)
           val mapTiles = map.cells.map(c => (c.x, c.y) -> c.height).toMap
-          val vision = Array.ofDim[Double](visionTiles, visionTiles, unitSize)
+          val vision = Array.ofDim[Double](visionTiles * 2, visionTiles * 2, unitSize)
           val centerPos = (center.position.x / 32, center.position.y / 32)
 
           for(x <- Range(-1*visionTiles, visionTiles);
             y  <- Range(-1*visionTiles, visionTiles)) {
-            vision(x)(y) = Array.concat(
+            vision(x + visionTiles)(y + visionTiles) = Array.concat(
               Array(mapTiles.get(add(centerPos, (x,y))) match {
                 case Some(height) => height
                 case None => -1
