@@ -41,14 +41,15 @@ public class TrainMain {
     MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
             .constrainGradientToUnitNorm(false)
             .visibleUnit(RBM.VisibleUnit.SOFTMAX).layerFactory(LayerFactories.getFactory(RBM.class))
-            .hiddenUnit(RBM.HiddenUnit.RECTIFIED).weightInit(WeightInit.DISTRIBUTION).dist(Distributions.normal(gen, 1e-7))
+            .hiddenUnit(RBM.HiddenUnit.RECTIFIED).weightInit(WeightInit.NORMALIZED).dist(Distributions.normal(gen, 1e-3))
             .activationFunction(Activations.tanh())
+            .dropOut(0.3)
             .lossFunction(LossFunctions.LossFunction.RECONSTRUCTION_CROSSENTROPY)
             .rng(gen)
-            .learningRate(1e-2f)
-            .nIn(iter.inputColumns()).nOut(50)
+            .learningRate(1)
+            .nIn(iter.inputColumns()).nOut(200)
             .list(5)
-            .hiddenLayerSizes(new int[]{3000, 750, 2000, 1000})
+            .hiddenLayerSizes(new int[]{500, 750, 500, 300})
             .override(new NeuralNetConfiguration.ConfOverride() {
               @Override
               public void override(int i, NeuralNetConfiguration.Builder builder) {

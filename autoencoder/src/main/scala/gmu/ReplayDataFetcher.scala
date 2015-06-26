@@ -12,7 +12,7 @@ import scala.util.Random
 
 object ReplayDataFetcher {
   def playerSize: Int = Race.values.size + Tech.values.size + Upgrade.values.size
-  def unitSize: Int = 8
+  def unitSize: Int = 4
 
   val numUnits = 10
   val vision = 320 // px
@@ -40,11 +40,9 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
   totalExamples = per.numberOfExamples
 
   def getExamples(numExamples: Int): Seq[DataSet] = {
-    val examples = per.findPlayers(replayId, frame, numExamples)
+    val examples = per.findPlayers(replayId, frame, numExamples + 1)
       .map({
         case (id: DBObject, players: ReplayPlayers) => {
-          log.debug("Found id {}", id)
-
           val units = per.findUnits(id).toSeq
           val center = units(new Random().nextInt(units.size))
           val unitTiles = units.map(u => toTuple(u.position) -> u).toMap
@@ -126,13 +124,9 @@ class ReplayDataFetcher extends BaseDataFetcher with ReplayPickles {
     val u: BwUnitType = unitTypes.get(unit.unitType).get
     Array[Double](
         binary(u.isFlyer),
-        binary(u.isWorker),
         binary(u.groundWeapon.targetsAir || u.airWeapon.targetsAir),
         binary(u.groundWeapon.targetsGround || u.airWeapon.targetsGround),
-        binary(u.canAttack),
-        binary(u.canProduce),
-        unit.hp.toDouble / unit.initalHp.toDouble) ++
-        category(Order.values, unit.order)
+        unit.hp.toDouble / unit.initalHp.toDouble)
   }
 
   def serialize(p: ReplayPlayer): Array[Double] = {

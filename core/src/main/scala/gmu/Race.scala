@@ -1,9 +1,6 @@
 package gmu
 
-import org.slf4j.LoggerFactory
-
 object Race {
-  val log = LoggerFactory.getLogger("gmu.Race")
 
   sealed trait RaceType
   case object Zerg extends RaceType
